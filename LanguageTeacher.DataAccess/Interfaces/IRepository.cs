@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace LanguageTeacher.DataAccess.Interfaces
 {
-    public interface IRepository<T> where T : class
+    public interface IRepository<TEntity> where TEntity : class
     {
-        T Get(int id);
-        ICollection<T> GetAll();
+        TEntity Get(int id);
+        ICollection<TEntity> GetAll();
 
-        void Add(T item);
+        void Add(TEntity item);
         void Remove(int id);
     }
 }

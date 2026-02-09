@@ -7,39 +7,49 @@ using System.Threading.Tasks;
 using LanguageTeacher.DataAccess.Data;
 using LanguageTeacher.DataAccess.Data.Entities;
 using LanguageTeacher.DataAccess.Interfaces;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 
 namespace LanguageTeacher.DataAccess.Repositories
 {
-    public class VerbalPairRepository : IRepository<VerbalPair>
+    public class PairsRepository : IRepository<VerbalPair>
     {
-        private readonly VocabularAppContext _context;
+        private readonly AppDbContext _context;
 
-        public VerbalPairRepository(VocabularAppContext context)
+        public PairsRepository()
         {
-            _context = context;
+            _context = new AppDbContext();
         }
 
         public VerbalPair Get(int id)
         {
-            return _context.VerbalPairs.First(e => e.Id == id);
+            return _context.Pairs.Find(id);
         }
 
         public ICollection<VerbalPair> GetAll()
         {
-            return _context.VerbalPairs.ToList();
+            return _context.Pairs.ToList();
         }
 
         public void Add(VerbalPair verbalPair)
         {
-            _context.Add(verbalPair);
+            var thatPair = _context.Pairs.FirstOrDefault(e => e.Foreign == verbalPair.Foreign);
+
+            if (thatPair == null)
+            {
+                _context.Add(verbalPair);
+            }
+            else
+            {
+                thatPair.Translations.Add(verbalPair.Translations[0]);
+            }
 
             _context.SaveChanges();
         }
 
         public void Remove(int id)
         {
-            VerbalPair? verbalPair = _context.VerbalPairs.FirstOrDefault(e => e.Id == id);
+            VerbalPair? verbalPair = _context.Pairs.FirstOrDefault(e => e.Id == id);
             
             if (verbalPair is not null)
                 _context.Remove(verbalPair);

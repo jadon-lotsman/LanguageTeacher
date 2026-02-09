@@ -1,13 +1,10 @@
 ﻿using System;
-using LanguageTeacher.DataAccess;
-using LanguageTeacher.DataAccess.Data;
-using LanguageTeacher.DataAccess.Data.Entities;
+using System.Text.RegularExpressions;
 using LanguageTeacher.DataAccess.Repositories;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace LanguageTeacher.ConsoleApp
 {
+
     public static class StringExtension
     {
         public static string Capitalize(this string str)
@@ -15,7 +12,15 @@ namespace LanguageTeacher.ConsoleApp
             char[] letters = str.ToLower().ToCharArray();
             letters[0] = char.ToUpper(letters[0]);
 
-            return new string(letters);
+            return string.Join("", letters);
+        }
+
+        public static string RemoveMultispaces(this string str)
+        {
+            str = str.Trim();
+            str = Regex.Replace(str, @"\s+", " ");
+
+            return new string(str);
         }
     }
 
@@ -23,24 +28,21 @@ namespace LanguageTeacher.ConsoleApp
     {
         static void Main(string[] args)
         {
-            var optionsBuilder = new DbContextOptionsBuilder<VocabularAppContext>();
-            var options = optionsBuilder.UseSqlite("Data Source=vocabularapp.db").Options;
-
-            VerbalPairRepository repository = new VerbalPairRepository(new VocabularAppContext(options));
+            var vocabService = new VocabularService(new PairsRepository());
 
             while (true)
             {
                 Console.Clear();
 
-                ConsoleUI.PrintVocabularTable(repository.GetAll());
+                ConsoleUI.PrintVocabularTable(vocabService.GetAll());
 
-                Console.WriteLine("\nВведите слово или напишите 'exam'");
+                Console.WriteLine("\nДобавьте новое слово или перевод");
                 string foreign = Console.ReadLine();
 
                 Console.WriteLine("Введите перевод:");
                 string translate = Console.ReadLine();
 
-                repository.Add(new VerbalPair() { Id=0, Foreign=foreign, Translate=translate, Knowledge=0});
+                vocabService.Add(foreign, translate);
             }
         }
     }
