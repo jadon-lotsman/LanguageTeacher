@@ -8,7 +8,7 @@ namespace LanguageTeacher.DataAccess.Interfaces
 {
     public interface IRepository<TEntity> where TEntity : class
     {
-        TEntity Get(int id);
+        TEntity? Get(int id);
         ICollection<TEntity> GetAll();
 
         void Add(TEntity item);

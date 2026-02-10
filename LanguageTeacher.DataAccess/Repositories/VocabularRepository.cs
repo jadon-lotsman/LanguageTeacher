@@ -7,41 +7,42 @@ using System.Threading.Tasks;
 using LanguageTeacher.DataAccess.Data;
 using LanguageTeacher.DataAccess.Data.Entities;
 using LanguageTeacher.DataAccess.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 
 namespace LanguageTeacher.DataAccess.Repositories
 {
-    public class PairsRepository : IRepository<VerbalPair>
+    public class VocabularRepository : IRepository<VerbalEntry>
     {
         private readonly AppDbContext _context;
 
-        public PairsRepository()
+        public VocabularRepository()
         {
             _context = new AppDbContext();
         }
 
-        public VerbalPair Get(int id)
+        public VerbalEntry? Get(int id)
         {
             return _context.Pairs.Find(id);
         }
 
-        public ICollection<VerbalPair> GetAll()
+        public ICollection<VerbalEntry> GetAll()
         {
             return _context.Pairs.ToList();
         }
 
-        public void Add(VerbalPair verbalPair)
+        public void Add(VerbalEntry verbalEntry)
         {
-            var thatPair = _context.Pairs.FirstOrDefault(e => e.Foreign == verbalPair.Foreign);
+            var existEntry = _context.Pairs.FirstOrDefault(e => e.Foreign == verbalEntry.Foreign);
 
-            if (thatPair == null)
+            if (existEntry is null)
             {
-                _context.Add(verbalPair);
+                _context.Add(verbalEntry);
             }
             else
             {
-                thatPair.Translations.Add(verbalPair.Translations[0]);
+                existEntry.Translations.Add(verbalEntry.Translations[0]);
             }
 
             _context.SaveChanges();
@@ -49,10 +50,10 @@ namespace LanguageTeacher.DataAccess.Repositories
 
         public void Remove(int id)
         {
-            VerbalPair? verbalPair = _context.Pairs.FirstOrDefault(e => e.Id == id);
-            
-            if (verbalPair is not null)
-                _context.Remove(verbalPair);
+            VerbalEntry? verbalEntry = Get(id);
+
+            if (verbalEntry is not null)
+                _context.Remove(verbalEntry);
 
             _context.SaveChanges();
         }

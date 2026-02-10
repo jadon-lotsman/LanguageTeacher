@@ -10,7 +10,7 @@ namespace LanguageTeacher.DataAccess.Data
 {
     public class AppDbContext : DbContext
     {
-        public DbSet<VerbalPair> Pairs { get; set; }
+        public DbSet<VerbalEntry> Pairs { get; set; }
 
         public string DbPath { get; }
 
@@ -32,9 +32,10 @@ namespace LanguageTeacher.DataAccess.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<VerbalPair>().HasData(
-                new VerbalPair() { Id = 1, Foreign = "repair", Translations = { "ремонтировать" } },
-                new VerbalPair() { Id = 2, Foreign = "to paint", Translations = { "красить" } }
+            modelBuilder.Entity<VerbalEntry>().HasData(
+                new VerbalEntry() { Id = 1, Foreign = "to repair", Transcription= "[tu: rI'pea(r)]", Translations = { "ремонтировать" } },
+                new VerbalEntry() { Id = 2, Foreign = "fuel", Transcription = "['fju:el]", Example= "We stopped to take on fuel.", Translations = { "топливо", "заправляться" } },
+                new VerbalEntry() { Id = 3, Foreign = "pump", Translations = { "насос" } }
             );
         }
     }
