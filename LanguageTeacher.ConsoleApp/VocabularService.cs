@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using LanguageTeacher.DataAccess.Data.Entities;
 using LanguageTeacher.DataAccess.Interfaces;
+using LanguageTeacher.DataAccess.Repositories;
 
 namespace LanguageTeacher.ConsoleApp
 {
@@ -9,9 +10,9 @@ namespace LanguageTeacher.ConsoleApp
     {
         private IRepository<VerbalEntry> _repository;
 
-        public VocabularService(IRepository<VerbalEntry> repository)
+        public VocabularService()
         {
-            _repository = repository;
+            _repository = new VocabularRepository();
         }
 
         public List<VerbalEntry> GetAll()
@@ -19,24 +20,15 @@ namespace LanguageTeacher.ConsoleApp
             return _repository.GetAll().ToList();
         }
 
-        public void Add(string foreign, string translate)
+        public void Add(VerbalEntry entry)
         {
-            if (string.IsNullOrWhiteSpace(foreign))
-                throw new ArgumentException("Foreign word cannot be empty", nameof(foreign));
+            if (string.IsNullOrWhiteSpace(entry.Foreign))
+                throw new ArgumentException("Foreign word cannot be empty", nameof(entry.Foreign));
 
-            if (string.IsNullOrWhiteSpace(translate))
-                throw new ArgumentException("Translation word cannot be empty", nameof(translate));
+            if (entry.Translations.Count == 0)
+                throw new ArgumentException("Translation word cannot be empty", nameof(entry.Translations));
 
-            foreign = foreign.ToLower().RemoveMultispaces();
-            translate = translate.ToLower().RemoveMultispaces();
-
-            VerbalEntry pair = new VerbalEntry()
-            {
-                Foreign = foreign,
-                Translations = { translate }
-            };
-
-            _repository.Add(pair);
+            _repository.Add(entry);
         }
 
         public void Remove(int id)

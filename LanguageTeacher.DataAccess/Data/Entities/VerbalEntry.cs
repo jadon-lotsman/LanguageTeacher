@@ -12,7 +12,7 @@ namespace LanguageTeacher.DataAccess.Data.Entities
         public int Id { get; set; }
         public string Foreign { get; set; }
         public string? Transcription { get; set; }
-        public string? Example { get; set; }
+        public List<string> Examples { get; set; } = new List<string>();
         public List<string> Translations { get; set; } = new List<string>();
         public int? Knowledge { get; set; }
     }

@@ -35,16 +35,19 @@ namespace LanguageTeacher.ConsoleApp
             string column2 = pair.Transcription ?? "";
             Console.Write($"\u2502 {column2,-column_width} ");
 
-            string column3 = string.Join(", ", pair.Translations);
-            Console.Write($"\u2502 {column3.Capitalize(), -column_width*2} \u2502\n");
+            string column3 = string.Join(", ", pair.Translations).Capitalize();
+            Console.Write($"\u2502 {column3, -column_width*2} \u2502\n");
 
-            if (!string.IsNullOrEmpty(pair.Example))
+            if (pair.Examples.Count > 0)
             {
-                Console.Write("\u2502");
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.Write($"{"   – " + pair.Example, -n_width}");
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write("\u2502\n");
+                foreach (var example in pair.Examples)
+                {
+                    Console.Write("\u2502");
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.Write($"{"   – " + example.Capitalize(),-n_width}");
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.Write("\u2502\n");
+                }
             }
         }
 

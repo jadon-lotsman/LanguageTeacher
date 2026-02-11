@@ -4,14 +4,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem;
+using LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem.Commands;
 using LanguageTeacher.DataAccess.Data.Entities;
 using LanguageTeacher.DataAccess.Interfaces;
 
 namespace LanguageTeacher.ConsoleApp.Framework.CommandSystem
 {
-    public class CommandParser
+    public class CommandFactory
     {
-        public ICommand Parse(string? request)
+        public ICommand CreateCommand(string? request)
         {
             if (string.IsNullOrEmpty(request))
                 throw new ArgumentException("Command request is empty", nameof(request));
@@ -22,18 +23,26 @@ namespace LanguageTeacher.ConsoleApp.Framework.CommandSystem
 
             return commandName switch
             {
-                "add" => ParseAddCommand(parts),
+                "add" => CreateAddCommand(parts),
                 "remove" => ParseRemoveCommand(parts),
                 _ => throw new ArgumentException("Unknown command", commandName)
             };
         }
 
-        private ICommand ParseAddCommand(string[] parts)
+        private ICommand CreateAddCommand(string[] parts)
         {
             if (parts.Length < 3)
                 throw new ArgumentException("Add command has no arguments");
 
-            return new VocabularAddCommand(parts[1], parts[2]);
+            string foreign = parts[1];
+            List<string> translations = new List<string>();
+
+            for (int i = 2; i < parts.Length; i++)
+            {
+                translations.Add(parts[i]);
+            }
+
+            return new AddCommand(foreign, translations.ToArray());
         }
 
         private ICommand ParseRemoveCommand(string[] parts)
@@ -43,7 +52,7 @@ namespace LanguageTeacher.ConsoleApp.Framework.CommandSystem
 
             int id = int.Parse(parts[1]);
 
-            return new VocabularRemoveCommand(id);
+            return new RemoveCommand(id);
         }
     }
 }

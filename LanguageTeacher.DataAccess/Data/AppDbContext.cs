@@ -34,7 +34,7 @@ namespace LanguageTeacher.DataAccess.Data
 
             modelBuilder.Entity<VerbalEntry>().HasData(
                 new VerbalEntry() { Id = 1, Foreign = "to repair", Transcription= "[tu: rI'pea(r)]", Translations = { "ремонтировать" } },
-                new VerbalEntry() { Id = 2, Foreign = "fuel", Transcription = "['fju:el]", Example= "We stopped to take on fuel.", Translations = { "топливо", "заправляться" } },
+                new VerbalEntry() { Id = 2, Foreign = "fuel", Transcription = "['fju:el]", Examples = { "We stopped to take on fuel.", "Add fuel to the fire/flame." }, Translations = { "топливо", "заправляться" } },
                 new VerbalEntry() { Id = 3, Foreign = "pump", Translations = { "насос" } }
             );
         }
