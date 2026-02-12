@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,9 +23,14 @@ namespace LanguageTeacher.DataAccess.Repositories
             _context = new AppDbContext();
         }
 
-        public VerbalEntry? Get(int id)
+        public VerbalEntry? GetById(int id)
         {
             return _context.Pairs.Find(id);
+        }
+
+        public VerbalEntry? GetByKey(string key)
+        {
+            return _context.Pairs.FirstOrDefault(e => e.Foreign == key);
         }
 
         public ICollection<VerbalEntry> GetAll()
@@ -32,25 +38,42 @@ namespace LanguageTeacher.DataAccess.Repositories
             return _context.Pairs.ToList();
         }
 
-        public void Add(VerbalEntry verbalEntry)
+        public void Add(VerbalEntry item)
         {
-            var existEntry = _context.Pairs.FirstOrDefault(e => e.Foreign == verbalEntry.Foreign);
+            var currentEntry = GetByKey(item.Foreign);
 
-            if (existEntry is null)
+            if (currentEntry is null)
             {
-                _context.Add(verbalEntry);
+                _context.Add(item);
             }
             else
-            {
-                existEntry.Translations.Add(verbalEntry.Translations[0]);
-            }
+                new ArgumentException("VerbalEntry is exist");
+
+            _context.SaveChanges();
+        }
+
+        public void Patch(int id, VerbalEntry source)
+        {
+            var currentEntry = GetById(id);
+
+            if (source.Foreign is not null)
+                currentEntry.Foreign = source.Foreign;
+
+            if (source.Translations.Count != 0)
+                currentEntry.Translations.AddRange(source.Translations);
+
+            if (source.Transcription is not null)
+                currentEntry.Transcription = source.Transcription;
+
+            if (source.Examples.Count != 0)
+                currentEntry.Examples.AddRange(source.Examples);
 
             _context.SaveChanges();
         }
 
         public void Remove(int id)
         {
-            VerbalEntry? verbalEntry = Get(id);
+            VerbalEntry? verbalEntry = GetById(id);
 
             if (verbalEntry is not null)
                 _context.Remove(verbalEntry);

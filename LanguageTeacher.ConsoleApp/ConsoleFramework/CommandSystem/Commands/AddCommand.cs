@@ -10,16 +10,11 @@ namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem.Commands
     {
         private IVerbalEntryBuilder entryBuilder;
 
-        public AddCommand(string foreign, string[] translates, string? tscript=null, string[]? examples=null)
+        public AddCommand(string foreign, string[] translates)
         {
             entryBuilder = new VerbalEntryBuilder()
                 .SetForeign(foreign)
                 .AddTranslation(translates);
-
-            if (!string.IsNullOrEmpty(tscript))
-                entryBuilder.SetTranscription(tscript);
-            if (examples != null)
-                entryBuilder.AddExample(examples);
         }
 
 

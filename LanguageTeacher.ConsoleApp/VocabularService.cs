@@ -31,12 +31,18 @@ namespace LanguageTeacher.ConsoleApp
             _repository.Add(entry);
         }
 
-        public void Remove(int id)
+        public void Patch(VerbalEntry source)
         {
-            if (_repository.Get(id) ==  null)
-                throw new ArgumentException("That item is null");
+            var current = _repository.GetByKey(source.Foreign);
 
-            _repository.Remove(id);
+            _repository.Patch(current.Id, source);
+        }
+
+        public void Remove(VerbalEntry item)
+        {
+            var current = _repository.GetByKey(item.Foreign);
+
+            _repository.Remove(current.Id);
         }
     }
 }

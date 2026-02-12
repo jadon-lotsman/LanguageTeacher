@@ -24,6 +24,8 @@ namespace LanguageTeacher.ConsoleApp.Framework.CommandSystem
             return commandName switch
             {
                 "add" => CreateAddCommand(parts),
+                "example" => CreateAddExampleCommand(parts),
+                "pronun" => CreateAddTranscriptionCommand(parts),
                 "remove" => ParseRemoveCommand(parts),
                 _ => throw new ArgumentException("Unknown command", commandName)
             };
@@ -45,14 +47,41 @@ namespace LanguageTeacher.ConsoleApp.Framework.CommandSystem
             return new AddCommand(foreign, translations.ToArray());
         }
 
+        private ICommand CreateAddExampleCommand(string[] parts)
+        {
+            if (parts.Length < 3)
+                throw new ArgumentException("Add command has no arguments");
+
+            string foreign = parts[1];
+            List<string> examples = new List<string>();
+
+            for (int i = 2; i < parts.Length; i++)
+            {
+                examples.Add(parts[i]);
+            }
+
+            return new AddExampleCommand(foreign, examples.ToArray());
+        }
+
+        private ICommand CreateAddTranscriptionCommand(string[] parts)
+        {
+            if (parts.Length < 3)
+                throw new ArgumentException("Add command has no arguments");
+
+            string foreign = parts[1];
+            string transcription = parts[2];
+
+            return new AddTranscriptionCommand(foreign, transcription);
+        }
+
         private ICommand ParseRemoveCommand(string[] parts)
         {
             if (parts.Length < 2)
                 throw new ArgumentException("Remove command has no arguments");
 
-            int id = int.Parse(parts[1]);
+            string foreign = parts[1];
 
-            return new RemoveCommand(id);
+            return new RemoveCommand(foreign);
         }
     }
 }

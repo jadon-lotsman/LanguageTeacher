@@ -6,21 +6,23 @@ using System.Threading.Tasks;
 
 namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem.Commands
 {
-    public class RemoveCommand : ICommand
+    public class AddExampleCommand : ICommand
     {
         private IVerbalEntryBuilder entryBuilder;
 
-        public RemoveCommand(string foreign)
+        public AddExampleCommand(string foreign, string[] examples)
         {
             entryBuilder = new VerbalEntryBuilder()
-                .SetForeign(foreign);
+                .SetForeign(foreign)
+                .AddExample(examples);
         }
+
 
         public void Execute(VocabularService service)
         {
             var entry = entryBuilder.Build();
 
-            service.Remove(entry);
+            service.Patch(entry);
         }
     }
 }

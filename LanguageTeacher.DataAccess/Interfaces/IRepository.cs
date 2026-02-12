@@ -8,10 +8,12 @@ namespace LanguageTeacher.DataAccess.Interfaces
 {
     public interface IRepository<TEntity> where TEntity : class
     {
-        TEntity? Get(int id);
+        TEntity? GetById(int id);
+        TEntity? GetByKey(string key);
         ICollection<TEntity> GetAll();
 
         void Add(TEntity item);
+        void Patch(int id, TEntity source);
         void Remove(int id);
     }
 }

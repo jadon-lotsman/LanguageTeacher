@@ -4,11 +4,11 @@ using LanguageTeacher.DataAccess.Data.Entities;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
-namespace LanguageTeacher.ConsoleApp
+namespace LanguageTeacher.ConsoleApp.ConsoleFramework
 {
     static class ConsoleASCII
     {
-        const int column_width = 16, n_width = (column_width*4)+(3*2)+2;
+        const int column_width = 16, n_width = column_width*4+3*2+2;
 
         public static void WriteVocabularTable(ICollection<VerbalEntry> pairs)
         {
@@ -29,14 +29,15 @@ namespace LanguageTeacher.ConsoleApp
 
         public static void WriteTableBody(VerbalEntry pair)
         {
-            string column1 = $"[{pair.Id}] {pair.Foreign.Capitalize()} ";
-            Console.Write($"\u2502 {column1,-column_width} ");
+            //string key_column = $"[{pair.Id}] {pair.Foreign.Capitalize()} ";
+            string key_column = $"{pair.Foreign.Capitalize()} ";
+            Console.Write($"\u2502 {key_column,-column_width} ");
 
-            string column2 = pair.Transcription ?? "";
-            Console.Write($"\u2502 {column2,-column_width} ");
+            string transcript_column = pair.Transcription ?? "";
+            Console.Write($"\u2502 {transcript_column,-column_width} ");
 
-            string column3 = string.Join(", ", pair.Translations).Capitalize();
-            Console.Write($"\u2502 {column3, -column_width*2} \u2502\n");
+            string translations_column = string.Join(", ", pair.Translations).Capitalize();
+            Console.Write($"\u2502 {translations_column, -column_width*2} \u2502\n");
 
             if (pair.Examples.Count > 0)
             {
@@ -44,7 +45,7 @@ namespace LanguageTeacher.ConsoleApp
                 {
                     Console.Write("\u2502");
                     Console.ForegroundColor = ConsoleColor.DarkGray;
-                    Console.Write($"{"   – " + example.Capitalize(),-n_width}");
+                    Console.Write($"{" – " + example.Capitalize(),-n_width}");
                     Console.ForegroundColor = ConsoleColor.Gray;
                     Console.Write("\u2502\n");
                 }
