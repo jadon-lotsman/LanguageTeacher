@@ -58,5 +58,12 @@ namespace LanguageTeacher.ConsoleApp.ConsoleFramework
             Console.Write(new string('\u2550', n_width));
             Console.WriteLine('\u255B');
         }
+
+        public static void WriteError(string msg)
+        {
+            Console.ForegroundColor= ConsoleColor.Yellow;
+            Console.WriteLine(msg);
+            Console.ForegroundColor= ConsoleColor.Gray;
+        }
     }
 }

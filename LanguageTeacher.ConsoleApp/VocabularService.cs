@@ -23,10 +23,10 @@ namespace LanguageTeacher.ConsoleApp
         public void Add(VerbalEntry entry)
         {
             if (string.IsNullOrWhiteSpace(entry.Foreign))
-                throw new ArgumentException("Foreign word cannot be empty", nameof(entry.Foreign));
+                throw new ArgumentException("Foreign word cannot be empty");
 
             if (entry.Translations.Count == 0)
-                throw new ArgumentException("Translation word cannot be empty", nameof(entry.Translations));
+                throw new ArgumentException("Translations cannot be empty");
 
             _repository.Add(entry);
         }
@@ -35,12 +35,18 @@ namespace LanguageTeacher.ConsoleApp
         {
             var current = _repository.GetByKey(source.Foreign);
 
+            if (current == null)
+                throw new ArgumentException($"Item with foreign '{source.Foreign}' not found.");
+
             _repository.Patch(current.Id, source);
         }
 
         public void Remove(VerbalEntry item)
         {
             var current = _repository.GetByKey(item.Foreign);
+
+            if (current == null)
+                throw new ArgumentException($"Item with foreign '{item.Foreign}' not found.");
 
             _repository.Remove(current.Id);
         }

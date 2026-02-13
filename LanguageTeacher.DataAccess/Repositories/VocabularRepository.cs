@@ -42,12 +42,10 @@ namespace LanguageTeacher.DataAccess.Repositories
         {
             var currentEntry = GetByKey(item.Foreign);
 
-            if (currentEntry is null)
-            {
+            if (currentEntry == null)
                 _context.Add(item);
-            }
             else
-                new ArgumentException("VerbalEntry is exist");
+                throw new ArgumentException($"An item with foreign '{item.Foreign}' already exists.");
 
             _context.SaveChanges();
         }
@@ -55,6 +53,9 @@ namespace LanguageTeacher.DataAccess.Repositories
         public void Patch(int id, VerbalEntry source)
         {
             var currentEntry = GetById(id);
+
+            if (currentEntry == null)
+                throw new ArgumentException($"An item with id '{id}' is not found.");
 
             if (source.Foreign is not null)
                 currentEntry.Foreign = source.Foreign;
@@ -73,10 +74,12 @@ namespace LanguageTeacher.DataAccess.Repositories
 
         public void Remove(int id)
         {
-            VerbalEntry? verbalEntry = GetById(id);
+            var verbalEntry = GetById(id);
 
-            if (verbalEntry is not null)
-                _context.Remove(verbalEntry);
+            if (verbalEntry == null)
+                throw new ArgumentException($"Cannot delete: item with id '{id}' not found.");
+
+            _context.Remove(verbalEntry);
 
             _context.SaveChanges();
         }

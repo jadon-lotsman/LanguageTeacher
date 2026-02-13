@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
-using LanguageTeacher.ConsoleApp.Framework.CommandSystem;
+using LanguageTeacher.ConsoleApp.ConsoleFramework;
+using LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem;
 using LanguageTeacher.DataAccess.Data.Entities;
 
 namespace LanguageTeacher.ConsoleApp
@@ -22,8 +23,16 @@ namespace LanguageTeacher.ConsoleApp
 
                 string? userRequest = Console.ReadLine();
 
-                var cmd = cmdFactory.CreateCommand(userRequest);
-                cmd.Execute(vocabService);
+                try
+                {
+                    var cmd = cmdFactory.CreateCommand(userRequest);
+                    cmd.Execute(vocabService);
+                }
+                catch (Exception ex)
+                {
+                    ConsoleASCII.WriteError(ex.Message);
+                    Console.ReadLine();
+                }
             }
         }
     }

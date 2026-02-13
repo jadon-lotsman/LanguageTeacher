@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem;
 using LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem.Commands;
 using LanguageTeacher.DataAccess.Data.Entities;
 using LanguageTeacher.DataAccess.Interfaces;
 
-namespace LanguageTeacher.ConsoleApp.Framework.CommandSystem
+namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem
 {
     public class CommandFactory
     {
@@ -27,7 +26,7 @@ namespace LanguageTeacher.ConsoleApp.Framework.CommandSystem
                 "example" => CreateAddExampleCommand(parts),
                 "pronun" => CreateAddTranscriptionCommand(parts),
                 "remove" => ParseRemoveCommand(parts),
-                _ => throw new ArgumentException("Unknown command", commandName)
+                _ => throw new ArgumentException($"Unknown command with name '{commandName}'")
             };
         }
 
@@ -50,7 +49,7 @@ namespace LanguageTeacher.ConsoleApp.Framework.CommandSystem
         private ICommand CreateAddExampleCommand(string[] parts)
         {
             if (parts.Length < 3)
-                throw new ArgumentException("Add command has no arguments");
+                throw new ArgumentException("Example command has no arguments");
 
             string foreign = parts[1];
             List<string> examples = new List<string>();
@@ -66,7 +65,7 @@ namespace LanguageTeacher.ConsoleApp.Framework.CommandSystem
         private ICommand CreateAddTranscriptionCommand(string[] parts)
         {
             if (parts.Length < 3)
-                throw new ArgumentException("Add command has no arguments");
+                throw new ArgumentException("Pronun command has no arguments");
 
             string foreign = parts[1];
             string transcription = parts[2];
