@@ -12,7 +12,7 @@ namespace LanguageTeacher.ConsoleApp
         static void Main(string[] args)
         {
             var vocabService = new VocabularService();
-            var cmdFactory = new CommandFactory();
+            var cmdExecutor = new CommandExecutor(vocabService);
 
             while (true)
             {
@@ -25,8 +25,7 @@ namespace LanguageTeacher.ConsoleApp
 
                 try
                 {
-                    var cmd = cmdFactory.CreateCommand(userRequest);
-                    cmd.Execute(vocabService);
+                    cmdExecutor.ExecuteUserCommand(userRequest);
                 }
                 catch (Exception ex)
                 {

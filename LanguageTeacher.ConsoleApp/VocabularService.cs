@@ -10,10 +10,12 @@ namespace LanguageTeacher.ConsoleApp
     {
         private IRepository<VerbalEntry> _repository;
 
+
         public VocabularService()
         {
             _repository = new VocabularRepository();
         }
+
 
         public List<VerbalEntry> GetAll()
         {
@@ -28,7 +30,12 @@ namespace LanguageTeacher.ConsoleApp
             if (entry.Translations.Count == 0)
                 throw new ArgumentException("Translations cannot be empty");
 
-            _repository.Add(entry);
+            var current = _repository.GetByKey(entry.Foreign);
+
+            if (current != null)
+                _repository.Patch(current.Id, entry);
+            else
+                _repository.Add(entry);
         }
 
         public void Patch(VerbalEntry source)

@@ -6,23 +6,33 @@ using System.Threading.Tasks;
 
 namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem.Commands
 {
-    public class AddExampleCommand : ICommand
+    public class AddExampleCommand : CommandBase
     {
-        private IVerbalEntryBuilder entryBuilder;
+        protected override int ExpectedArgsCount => 2;
+        protected override bool HasLimitlessArgs => true;
 
-        public AddExampleCommand(string foreign, string[] examples)
+        private readonly VocabularService _service;
+
+
+        public AddExampleCommand(VocabularService service)
         {
-            entryBuilder = new VerbalEntryBuilder()
-                .SetForeign(foreign)
-                .AddExample(examples);
+            _service = service;
         }
 
 
-        public void Execute(VocabularService service)
+        protected override void ExecuteInternal(string[] args)
         {
-            var entry = entryBuilder.Build();
+            var builder = new VerbalEntryBuilder()
+                .SetForeign(args[0]);
 
-            service.Patch(entry);
+            for (int i = 1; i < args.Length; i++)
+            {
+                builder.AddExample(args[i]);
+            }
+
+            var entry = builder.Build();
+
+            _service.Patch(entry);
         }
     }
 }

@@ -6,23 +6,28 @@ using System.Threading.Tasks;
 
 namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem.Commands
 {
-    public class AddTranscriptionCommand : ICommand
+    public class AddTranscriptionCommand : CommandBase
     {
-        private IVerbalEntryBuilder entryBuilder;
+        protected override int ExpectedArgsCount => 2;
+        protected override bool HasLimitlessArgs => false;
 
-        public AddTranscriptionCommand(string foreign, string transcription)
+        private readonly VocabularService _service;
+
+
+        public AddTranscriptionCommand(VocabularService service)
         {
-            entryBuilder = new VerbalEntryBuilder()
-                .SetForeign(foreign)
-                .SetTranscription(transcription);
+            _service = service;
         }
 
 
-        public void Execute(VocabularService service)
+        protected override void ExecuteInternal(string[] args)
         {
-            var entry = entryBuilder.Build();
+            var entry = new VerbalEntryBuilder()
+                .SetForeign(args[0])
+                .SetTranscription(args[1])
+                .Build();
 
-            service.Patch(entry);
+            _service.Patch(entry);
         }
     }
 }

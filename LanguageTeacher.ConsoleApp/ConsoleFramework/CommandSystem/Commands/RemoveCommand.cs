@@ -6,21 +6,27 @@ using System.Threading.Tasks;
 
 namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem.Commands
 {
-    public class RemoveCommand : ICommand
+    public class RemoveCommand : CommandBase
     {
-        private IVerbalEntryBuilder entryBuilder;
+        protected override int ExpectedArgsCount => 1;
+        protected override bool HasLimitlessArgs => false;
 
-        public RemoveCommand(string foreign)
+        private readonly VocabularService _service;
+
+
+        public RemoveCommand(VocabularService service)
         {
-            entryBuilder = new VerbalEntryBuilder()
-                .SetForeign(foreign);
+            _service = service;
         }
 
-        public void Execute(VocabularService service)
-        {
-            var entry = entryBuilder.Build();
 
-            service.Remove(entry);
+        protected override void ExecuteInternal(string[] args)
+        {
+            var entry = new VerbalEntryBuilder()
+                .SetForeign(args[0])
+                .Build();
+
+            _service.Remove(entry);
         }
     }
 }
