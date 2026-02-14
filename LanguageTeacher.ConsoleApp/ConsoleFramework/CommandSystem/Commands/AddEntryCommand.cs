@@ -3,18 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using LanguageTeacher.ConsoleApp.Interfaces;
 
 namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem.Commands
 {
-    public class AddCommand : CommandBase
+    public class AddEntryCommand : CommandBase
     {
         protected override int ExpectedArgsCount => 2;
         protected override bool HasLimitlessArgs => true;
 
-        private readonly VocabularService _service;
+        private readonly IVocabularService _service;
 
 
-        public AddCommand(VocabularService service)
+        public AddEntryCommand(IVocabularService service)
         {
             _service = service;
         }

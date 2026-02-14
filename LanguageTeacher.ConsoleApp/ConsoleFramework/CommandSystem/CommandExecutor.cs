@@ -4,17 +4,21 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using LanguageTeacher.ConsoleApp.Interfaces;
+using LanguageTeacher.ConsoleApp.Services;
 
 namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem
 {
     public class CommandExecutor
     {
-        private VocabularService _service;
+        private IVocabularService _vocabService;
+        private ILearningService _studyService;
         private CommandFactory _factory;
 
-        public CommandExecutor(VocabularService service)
+        public CommandExecutor(IVocabularService vocabService, ILearningService studyService)
         {
-            _service = service;
+            _vocabService = vocabService;
+            _studyService = studyService;
             _factory = new CommandFactory();
         }
 
@@ -32,7 +36,7 @@ namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem
             Array.Copy(splittedRequest, 1, commandArgs, 0, splittedRequest.Length-1);
 
 
-            var сommand = _factory.Create(commandName, _service);
+            var сommand = _factory.Create(commandName, _vocabService, _studyService);
 
 
             сommand.Execute(commandArgs);

@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using LanguageTeacher.ConsoleApp.Interfaces;
 using LanguageTeacher.DataAccess.Data.Entities;
 using LanguageTeacher.DataAccess.Interfaces;
 using LanguageTeacher.DataAccess.Repositories;
 
-namespace LanguageTeacher.ConsoleApp
+namespace LanguageTeacher.ConsoleApp.Services.VocabularService
 {
-    public class VocabularService
+    public class VocabularService : IVocabularService
     {
         private IRepository<VerbalEntry> _repository;
 
@@ -17,25 +19,30 @@ namespace LanguageTeacher.ConsoleApp
         }
 
 
-        public List<VerbalEntry> GetAll()
+        public ICollection<VerbalEntry> GetAll()
         {
-            return _repository.GetAll().ToList();
+            return _repository.GetAll();
         }
 
-        public void Add(VerbalEntry entry)
+        public VerbalEntry? GetById(int id)
         {
-            if (string.IsNullOrWhiteSpace(entry.Foreign))
+            return _repository.GetById(id);
+        }
+
+        public void Add(VerbalEntry item)
+        {
+            if (string.IsNullOrWhiteSpace(item.Foreign))
                 throw new ArgumentException("Foreign word cannot be empty");
 
-            if (entry.Translations.Count == 0)
+            if (item.Translations.Count == 0)
                 throw new ArgumentException("Translations cannot be empty");
 
-            var current = _repository.GetByKey(entry.Foreign);
+            var current = _repository.GetByKey(item.Foreign);
 
             if (current != null)
-                _repository.Patch(current.Id, entry);
+                _repository.Patch(current.Id, item);
             else
-                _repository.Add(entry);
+                _repository.Add(item);
         }
 
         public void Patch(VerbalEntry source)

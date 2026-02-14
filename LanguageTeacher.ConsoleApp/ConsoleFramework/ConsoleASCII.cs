@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using LanguageTeacher.ConsoleApp.Services.StudyService;
+using LanguageTeacher.ConsoleApp.Services.StudyService.Entities;
 using LanguageTeacher.DataAccess.Data.Entities;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
@@ -16,6 +18,16 @@ namespace LanguageTeacher.ConsoleApp.ConsoleFramework
 
             foreach (var pair in pairs)
                 WriteTableBody(pair);
+
+            WriteTableFooter();
+        }
+
+        public static void WriteQuestionTable(ICollection<VerbalQuestion> questions)
+        {
+            WriteTableHeader();
+
+            foreach (var quest in questions)
+                Console.WriteLine($"│ {quest.Foreign,-10} │ {quest.UserAnswer}");
 
             WriteTableFooter();
         }

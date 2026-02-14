@@ -3,6 +3,8 @@ using System.Text.RegularExpressions;
 using System.Windows.Input;
 using LanguageTeacher.ConsoleApp.ConsoleFramework;
 using LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem;
+using LanguageTeacher.ConsoleApp.Services.StudyService;
+using LanguageTeacher.ConsoleApp.Services.VocabularService;
 using LanguageTeacher.DataAccess.Data.Entities;
 
 namespace LanguageTeacher.ConsoleApp
@@ -12,13 +14,18 @@ namespace LanguageTeacher.ConsoleApp
         static void Main(string[] args)
         {
             var vocabService = new VocabularService();
-            var cmdExecutor = new CommandExecutor(vocabService);
+            var studyService = new LearningService(vocabService);
+            var cmdExecutor = new CommandExecutor(vocabService, studyService);
 
             while (true)
             {
                 Console.Clear();
 
-                ConsoleASCII.WriteVocabularTable(vocabService.GetAll());
+                if (studyService.IsComplete())
+                    ConsoleASCII.WriteVocabularTable(vocabService.GetAll());
+                else
+                    ConsoleASCII.WriteQuestionTable(studyService.GetAll());
+
                 Console.Write("> ");
 
                 string? userRequest = Console.ReadLine();

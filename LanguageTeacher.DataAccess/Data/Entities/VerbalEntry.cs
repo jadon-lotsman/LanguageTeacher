@@ -14,6 +14,6 @@ namespace LanguageTeacher.DataAccess.Data.Entities
         public string? Transcription { get; set; }
         public List<string> Examples { get; set; } = new List<string>();
         public List<string> Translations { get; set; } = new List<string>();
-        public int? Knowledge { get; set; }
+        public int Knowledge { get; set; }
     }
 }
