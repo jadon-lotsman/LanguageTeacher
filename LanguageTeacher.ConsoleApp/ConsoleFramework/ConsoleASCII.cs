@@ -27,7 +27,7 @@ namespace LanguageTeacher.ConsoleApp.ConsoleFramework
             WriteTableHeader();
 
             foreach (var quest in questions)
-                Console.WriteLine($"│ {quest.Foreign,-20} │ {quest.UserAnswer}");
+                Console.WriteLine($"│ {quest.QuestionValue,-n_width/2+5} │ {quest.UserValue, -n_width/2} │");
 
             WriteTableFooter();
         }

@@ -20,25 +20,22 @@ namespace LanguageTeacher.ConsoleApp.Services.StudyService.Entities
 
             foreach (var question in session.Questions)
             {
-                int entryId = question.EntryId;
-                var originaEntry = service.GetById(entryId);
+                var sourceEntry = service.GetById(question.EntryId);
 
-                if (IsCorrectQuestion(question, originaEntry))
-                {
+                if (IsCorrectQuestion(question, sourceEntry))
                     CorrectAnswersCount++;
-                }
             }
         }
 
 
-        private bool IsCorrectQuestion(Question question, VerbalEntry entry)
+        private bool IsCorrectQuestion(Question question, VerbalEntry sourceEntry)
         {
-            string[] entryTranslations = entry.Translations.ToArray();
+            var sourceTranslations = sourceEntry.Translations.ToArray();
 
-            if (entryTranslations.Contains(question.UserAnswer))
-                return true;
-
-            return false;
+            if (question.IsForwardQuestion)
+                return sourceTranslations.Contains(question.UserValue);
+            else
+                return question.UserValue == sourceEntry.Foreign;
         }
 
         public override string ToString()

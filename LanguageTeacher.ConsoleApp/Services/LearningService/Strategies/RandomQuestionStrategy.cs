@@ -21,7 +21,7 @@ namespace LanguageTeacher.ConsoleApp.Services.LearningService.Strategies
             List<Question> questions = new List<Question>();
 
             for (int i = 0; i < length; i++)
-                questions.Add(new Question(entriesArray[i].Id, entriesArray[i].Foreign));
+                questions.Add(new Question(entriesArray[i], _random.Next(2) == 1));
 
             return questions.ToArray();
         }

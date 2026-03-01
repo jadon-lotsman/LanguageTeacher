@@ -23,7 +23,7 @@ namespace LanguageTeacher.ConsoleApp.Services.StudyService.Entities
 
         public void NextQuestion(string answer)
         {
-            Questions[_currentQuestion].UserAnswer = answer;
+            Questions[_currentQuestion].UserValue = answer;
             _currentQuestion++;
         }
 

@@ -20,6 +20,7 @@ namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem
                 "example" =>  new AddEntryExampleCommand(_vocabService),
                 "pronun" => new AddEntryTranscriptionCommand(_vocabService),
                 "remove" => new RemoveEntryCommand(_vocabService),
+                "find" => new FindEntryCommand(_vocabService),
                 "session" => new OpenSessionCommand(_studyService),
                 "answer" => new SendAnswerCommand(_studyService),
                 "result" => new CloseSessionCommand(_studyService),

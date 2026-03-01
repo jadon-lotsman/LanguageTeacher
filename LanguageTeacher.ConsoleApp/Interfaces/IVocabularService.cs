@@ -10,6 +10,7 @@ namespace LanguageTeacher.ConsoleApp.Interfaces
     public interface IVocabularService
     {
         VerbalEntry? GetById(int id);
+        VerbalEntry? GetByKey(string key);
         ICollection<VerbalEntry> GetAll();
         void Add(VerbalEntry item);
         void Patch(VerbalEntry source);

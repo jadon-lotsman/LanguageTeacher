@@ -29,6 +29,11 @@ namespace LanguageTeacher.ConsoleApp.Services.VocabularService
             return _repository.GetById(id);
         }
 
+        public VerbalEntry? GetByKey(string key)
+        {
+            return _repository.GetByKey(key);
+        }
+
         public void Add(VerbalEntry item)
         {
             if (string.IsNullOrWhiteSpace(item.Foreign))
