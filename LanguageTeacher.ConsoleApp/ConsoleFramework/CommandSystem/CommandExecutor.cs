@@ -12,10 +12,10 @@ namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem
     public class CommandExecutor
     {
         private IVocabularService _vocabService;
-        private ILearningService _studyService;
+        private IStudySessionService _studyService;
         private CommandFactory _factory;
 
-        public CommandExecutor(IVocabularService vocabService, ILearningService studyService)
+        public CommandExecutor(IVocabularService vocabService, IStudySessionService studyService)
         {
             _vocabService = vocabService;
             _studyService = studyService;
@@ -34,6 +34,9 @@ namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem
             string[] commandArgs = new string[splittedRequest.Length - 1];
 
             Array.Copy(splittedRequest, 1, commandArgs, 0, splittedRequest.Length-1);
+
+            for (int i = 0; i < commandArgs.Length; i++)
+                commandArgs[i] = commandArgs[i].TrimEnd(',');
 
 
             var сommand = _factory.Create(commandName, _vocabService, _studyService);

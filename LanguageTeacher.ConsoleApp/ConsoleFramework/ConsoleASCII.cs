@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using LanguageTeacher.ConsoleApp.Services.StudyService;
-using LanguageTeacher.ConsoleApp.Services.StudyService.Entities;
 using LanguageTeacher.DataAccess.Data.Entities;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using LanguageTeacher.ConsoleApp.Services.SessionService.Entities;
 
 namespace LanguageTeacher.ConsoleApp.ConsoleFramework
 {

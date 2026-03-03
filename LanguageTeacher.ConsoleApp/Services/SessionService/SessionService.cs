@@ -1,22 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using LanguageTeacher.ConsoleApp.Interfaces;
-using LanguageTeacher.ConsoleApp.Services.LearningService.Strategies;
-using LanguageTeacher.ConsoleApp.Services.StudyService.Entities;
+using LanguageTeacher.ConsoleApp.Services.SessionService.Entities;
 using LanguageTeacher.DataAccess.Data.Entities;
 
-namespace LanguageTeacher.ConsoleApp.Services.StudyService
+namespace LanguageTeacher.ConsoleApp.Services.SessionService
 {
-    public class LearningService : ILearningService
+    public class SessionService : IStudySessionService
     {
         private IVocabularService _vocabularService;
-        private LearningSession? _session;
+        private Session? _session;
 
 
-        public LearningService(IVocabularService vocabularService)
+        public SessionService(IVocabularService vocabularService)
         {
             _vocabularService = vocabularService;
         }
@@ -35,12 +35,12 @@ namespace LanguageTeacher.ConsoleApp.Services.StudyService
             return _session.Questions;
         }
 
-        public void OpenSession(IQuestionStrategy strategy)
+        public void OpenSession(ISessionStrategy strategy)
         {
             var entries = _vocabularService.GetAll();
-            var questions = strategy.GetArray(entries);
+            var questions = strategy.SelectQuestions(entries);
 
-            _session = new LearningSession(questions);
+            _session = new Session(_vocabularService, strategy);
         }
 
         public SessionResult CloseSession()
@@ -48,7 +48,7 @@ namespace LanguageTeacher.ConsoleApp.Services.StudyService
             if (_session == null)
                 throw new ArgumentException("An session to close is not found.");
 
-            SessionResult result = _session.CloseAndGetResult(_vocabularService);
+            SessionResult result = new SessionRevisor().Review(_session, _vocabularService);
             _session = null;
 
             return result;

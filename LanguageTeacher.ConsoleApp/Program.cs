@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using System.Windows.Input;
 using LanguageTeacher.ConsoleApp.ConsoleFramework;
 using LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem;
-using LanguageTeacher.ConsoleApp.Services.StudyService;
+using LanguageTeacher.ConsoleApp.Services.SessionService;
 using LanguageTeacher.ConsoleApp.Services.VocabularService;
 using LanguageTeacher.DataAccess.Data.Entities;
 
@@ -14,7 +14,7 @@ namespace LanguageTeacher.ConsoleApp
         static void Main(string[] args)
         {
             var vocabService = new VocabularService();
-            var studyService = new LearningService(vocabService);
+            var studyService = new SessionService(vocabService);
             var cmdExecutor = new CommandExecutor(vocabService, studyService);
 
             while (true)

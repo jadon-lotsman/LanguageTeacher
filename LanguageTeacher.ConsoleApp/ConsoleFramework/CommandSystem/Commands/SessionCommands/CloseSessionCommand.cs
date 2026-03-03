@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using LanguageTeacher.ConsoleApp.Interfaces;
-using LanguageTeacher.ConsoleApp.Services.StudyService;
+using LanguageTeacher.ConsoleApp.Services.SessionService;
 
 namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem.Commands.SessionCommands
 {
@@ -13,10 +13,10 @@ namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem.Commands.Ses
         protected override int ExpectedArgsCount => 0;
         protected override bool HasLimitlessArgs => false;
 
-        private readonly ILearningService _service;
+        private readonly IStudySessionService _service;
 
 
-        public CloseSessionCommand(ILearningService service)
+        public CloseSessionCommand(IStudySessionService service)
         {
             _service = service;
         }
@@ -26,7 +26,9 @@ namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem.Commands.Ses
         {
             var result = _service.CloseSession();
 
-            Console.WriteLine(result);
+            Console.WriteLine("\n" + result);
+            Console.WriteLine("Let's remember:");
+            ConsoleASCII.WriteVocabularTable(result.FailedEntries);
             Console.ReadLine();
         }
     }

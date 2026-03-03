@@ -17,6 +17,22 @@ namespace LanguageTeacher.ConsoleApp
             return string.Join("", letters);
         }
 
+        public static float GetSimilarity(this string str1, string str2)
+        {
+            str1 = str1.ToLower().Replace(" ", "");
+            str2 = str2.ToLower().Replace(" ", "");
+
+            char[] str1_array = str1.ToCharArray();
+            char[] str2_array = str2.ToCharArray();
+
+            char[] unique_letters = str1_array.Union(str2_array).ToArray();
+
+            char[] intersect = str1_array.Intersect(str2_array).ToArray();
+            int sub_intersect = Math.Abs(intersect.Length - unique_letters.Length);
+
+            return intersect.Length / (unique_letters.Length + sub_intersect * 0.5f);
+        }
+
         public static string RemoveMultispaces(this string str)
         {
             str = str.Trim();

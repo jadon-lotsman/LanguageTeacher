@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using LanguageTeacher.DataAccess.Data.Entities;
 
-namespace LanguageTeacher.ConsoleApp.Services.StudyService.Entities
+namespace LanguageTeacher.ConsoleApp.Services.SessionService.Entities
 {
     public class Question
     {

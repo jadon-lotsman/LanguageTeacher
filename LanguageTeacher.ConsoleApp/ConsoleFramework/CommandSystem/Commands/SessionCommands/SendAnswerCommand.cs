@@ -12,10 +12,10 @@ namespace LanguageTeacher.ConsoleApp.ConsoleFramework.CommandSystem.Commands.Ses
         protected override int ExpectedArgsCount => 1;
         protected override bool HasLimitlessArgs => false;
 
-        private readonly ILearningService _service;
+        private readonly IStudySessionService _service;
 
 
-        public SendAnswerCommand(ILearningService service)
+        public SendAnswerCommand(IStudySessionService service)
         {
             _service = service;
         }
