@@ -1,0 +1,70 @@
+﻿using System.Security.Claims;
+using System.Text;
+using Itero.DataAccess.Data.Entities;
+using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using Itero.BusinessLogic.Services;
+
+namespace Itero.API.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AuthController : ControllerBase
+    {
+        private readonly IConfiguration _configuration;
+        private readonly UserService _userService;
+
+        public AuthController(IConfiguration configuration, UserService userService)
+        {
+            _configuration = configuration;
+            _userService = userService;
+        }
+
+
+        [HttpPost("login")]
+        public IActionResult Login(string username)
+        {
+            User? user = _userService.GetByUsername(username);
+            if (user == null)
+                return Unauthorized();
+
+            string token = GenerateJwt(user);
+            return Ok(token);
+        }
+
+
+        [HttpPost("register")]
+        public IActionResult Register(string username)
+        {
+            User? user = _userService.GetByUsername(username);
+            if (user != null)
+                return BadRequest();
+
+            _userService.Create(username);
+            return Ok();
+        }
+
+        private string GenerateJwt(User user)
+        {
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Name, user.Username),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+            };
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken (
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: creds
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+    }
+}
