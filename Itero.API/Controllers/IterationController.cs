@@ -83,10 +83,17 @@ namespace Itero.API.Controllers
         {
             var result = await _iterationService.FinishIterationAsync(UserId);
 
-            if (result == null)
-                return NotFound();
+            if (!result.IsSuccess)
+            {
+                return result.ErrorCode switch
+                {
+                    "ITERATION_NOT_FOUND" => NotFound(result.ErrorCode),
+                    "ITERATION_HAS_NO_ITERETTES" => BadRequest(result.ErrorCode),
+                    _ => StatusCode(500, result.ErrorCode)
+                };
+            }
 
-            return Ok(result);
+            return Ok(result.Value);
         }
     }
 }

@@ -32,10 +32,19 @@ namespace Itero.API.Services
             return await GetEntriesByUserQuery(userId)
                 .ToListAsync();
         }
+
         public async Task<VocabularyEntry?> GetEntryByIdAsync(int userId, int id)
         {
             return await GetEntriesByUserQuery(userId)
-                .FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId);
+                .FirstOrDefaultAsync(e => e.Id == id);
+        }
+        public async Task<Dictionary<int, VocabularyEntry>> GetEntriesDictByIdsAsync(int userId, IEnumerable<int> ids)
+        {
+            var list = await GetEntriesByUserQuery(userId)
+                .Where(e => ids.Contains(e.Id))
+                .ToListAsync();
+
+            return list.ToDictionary(e => e.Id);
         }
 
         public async Task<VocabularyEntry?> GetEntryByKeyAsync(int userId, string key)

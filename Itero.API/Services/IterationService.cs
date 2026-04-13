@@ -106,31 +106,34 @@ namespace Itero.API.Services
             return RequestResult<Iterette>.Success(iterette);
         }
 
-        public async Task<IterationResultDto?> FinishIterationAsync(int userId)
+        public async Task<RequestResult<IterationResultDto>> FinishIterationAsync(int userId)
         {
             var iteration = await GetIterationAsync(userId);
 
-            if (iteration == null || iteration.Iterettes == null)
-                return null;
+            if (iteration == null)
+                return RequestResult<IterationResultDto>.Failure("ITERATION_NOT_FOUND");
+
+            if (iteration.Iterettes == null)
+                return RequestResult<IterationResultDto>.Failure("ITERATION_HAS_NO_ITERETTES");
 
 
-            int correctCount = 0;
-            int totalCount = iteration.Iterettes.Count;
-            var failedEntries = new List<VocabularyEntryDto>();
+            var entriesIds = iteration.Iterettes.Select(i => i.BaseVocabularyEntryId).ToList();
+            var entriesDict = await _vocabularyService.GetEntriesDictByIdsAsync(userId, entriesIds);
 
-            const float SimilarityBorder = 0.75f;
+
+            int missedCount = 0;
+            var failedEntries = new List<VocabularyEntry>();
 
             foreach (var iterette in iteration.Iterettes)
             {
-                var restoredEntry = await _vocabularyService.GetEntryByIdAsync(userId, iterette.BaseVocabularyEntryId);
-
-                if(CalcSimilarity(iterette, restoredEntry) >= SimilarityBorder)
+                if (entriesDict.TryGetValue(iterette.BaseVocabularyEntryId, out var baseEntry) && baseEntry != null)
                 {
-                    correctCount++;
+                    if (!IsSimilarEnough(iterette, baseEntry))
+                        failedEntries.Add(baseEntry);
                 }
                 else
                 {
-                    failedEntries.Add(Mapper.MapToDto(restoredEntry));
+                    missedCount++;
                 }
             }
 
@@ -141,31 +144,28 @@ namespace Itero.API.Services
                 await _context.SaveChangesAsync();
             }
 
-            var result = new IterationResultDto(correctCount, totalCount, failedEntries.ToArray(), iteration.Started, iteration.Finished.Value);
 
-            return result;
+            int totalCount = iteration.Iterettes.Count - missedCount;
+            int correctCount = totalCount - failedEntries.Count;
+
+            var result = new IterationResultDto(
+                correctCount,
+                totalCount,
+                Mapper.MapToDto(failedEntries),
+                iteration.Started,
+                iteration.Finished!.Value);
+
+            return RequestResult<IterationResultDto>.Success(result);
         }
 
-        private float CalcSimilarity(Iterette iterette, VocabularyEntry entry)
+        private bool IsSimilarEnough(Iterette iterette, VocabularyEntry entry, float similarityBorder = 0.75f)
         {
-            string answer = iterette.UserAnswer;
+            string userAnswer = iterette.UserAnswer;
 
             if (iterette.IsForwardQuestion)
-            {
-                float maxSimilarity = 0;
-
-                foreach (string translation in entry.Translations)
-                {
-                    float currentSimilarity = answer.GetSimilarity(translation);
-                    maxSimilarity = Math.Max(maxSimilarity, currentSimilarity);
-                }
-
-                return maxSimilarity;
-            }
+                return entry.Translations.Any(t => userAnswer.GetSimilarity(t) >= similarityBorder);
             else
-            {
-                return answer.GetSimilarity(entry.Foreign);
-            }
+                return userAnswer.GetSimilarity(entry.Foreign) >= similarityBorder;
         }
     }
 }

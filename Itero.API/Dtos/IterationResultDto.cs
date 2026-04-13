@@ -17,7 +17,7 @@ namespace Itero.API.Dtos
         {
             Correct = correct;
             Total = total;
-            Percent = (float) Correct / Total * 100;
+            Percent = Total == 0? 0 : (float) Correct / Total * 100;
             Started = started;
             Finished = finished;
             FailedEntries = failedEntries;
