@@ -66,6 +66,18 @@ namespace Itereta.Common
                 .ToArray();
         }
 
+        public static RepetitionResponseDto? MapToDto(RepetitionState? state)
+        {
+            if (state == null) return null;
+
+            return new RepetitionResponseDto
+            {
+                IterationInterval   = state.IterationInterval,
+                EasinessFactor      = state.EasinessFactor,
+                NextIterationAt     = state.NextIterationAt,
+            };
+        }
+
 
         public static VocabularyEntry MapToEntry(VocabularyCreateDto dto, User user)
         {
@@ -122,7 +134,6 @@ namespace Itereta.Common
                 entry.Translations.RemoveAll(translationsToRemove.Contains);
             }
         }
-
 
 
         public static string PrepareForeign(string? foreign)

@@ -20,8 +20,6 @@
 
         public RepetitionState(User user, VocabularyEntry entry)
         {
-            NextIterationAt = DateTime.UtcNow;
-
             User = user;
             VocabularyEntry = entry;
         }

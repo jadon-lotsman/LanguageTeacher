@@ -32,7 +32,7 @@ namespace Itereta.Services
         {
             var iteration = await GetIterationAsync(userId);
             if (iteration == null) return RequestResult<Iteration>.Failure("ITERATION_NOT_FOUND");
-            if (iteration.WasFinished) return RequestResult<Iteration>.Failure("ITERATION_WAS_FINISHED");
+            if (iteration.IsFinished) return RequestResult<Iteration>.Failure("ITERATION_WAS_FINISHED");
             else return RequestResult<Iteration>.Failure("ITERATION_IN_PROCESS");
         }
 
@@ -41,6 +41,13 @@ namespace Itereta.Services
             return await _context.Iterations
                 .Include(i => i.Iterettes)
                 .FirstOrDefaultAsync(e => e.User.Id == userId);
+        }
+
+        public async Task<List<Iterette>> GetAllIterettesAsync(int userId)
+        {
+            return await _context.Iterettes
+                .Where(i => i.Iteration.UserId == userId)
+                .ToListAsync();
         }
 
         public async Task<Iterette?> GetIteretteByIdAsync(int userId, int iteretteId)
@@ -67,10 +74,10 @@ namespace Itereta.Services
 
             var iterationById = await GetIterationAsync(userId);
 
-            if (iterationById != null && !iterationById.WasFinished)
+            if (iterationById != null && !iterationById.IsFinished)
                 return RequestResult<Iteration>.Failure("ITERATION_NOT_FINISHED");
 
-            else if (iterationById != null && iterationById.WasFinished)
+            else if (iterationById != null && iterationById.IsFinished)
                 _context.Iterations.Remove(iterationById);
 
 
@@ -106,7 +113,7 @@ namespace Itereta.Services
                 return RequestResult<IterationResultDto>.Failure("ITERATION_HAS_NO_ITERETTES");
 
 
-            if (!iteration.WasFinished)
+            if (!iteration.IsFinished)
             {
                 iteration.FinishedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
@@ -124,11 +131,10 @@ namespace Itereta.Services
             {
                 if (entriesDict.TryGetValue(iterette.BaseVocabularyEntryId, out var baseEntry) && baseEntry != null)
                 {
-                    var quality = GetRepetitionQuality(iterette, baseEntry);
-                    await UpdateRepetitionStateAsync(userId, baseEntry.Id, quality);
+                    var state = await AutoAssessmentRepetitionStateAsync(userId, iterette, baseEntry);
 
-                    if (quality < 3.0)
-                        failedEntries.Add(baseEntry);
+                    //if (state.Value.IterationCounter!=0)
+                    //    failedEntries.Add(baseEntry);
                 }
                 else
                 {
@@ -150,30 +156,44 @@ namespace Itereta.Services
             return RequestResult<IterationResultDto>.Success(result);
         }
 
-        public async Task<RequestResult<Iterette>> SetIteretteAnswerAsync(int userId, int iteretteId, string answer)
+        public async Task<RequestResult<Iterette>> SubmitIteretteAnswerAsync(int userId, int iteretteId, string answer)
         {
             var iterette = await GetIteretteByIdAsync(userId, iteretteId);
 
             if (iterette == null)
                 return RequestResult<Iterette>.Failure("ITERETTE_NOT_FOUND");
 
-            if (iterette.Iteration.WasFinished)
+            if (iterette.Iteration.IsFinished)
                 return RequestResult<Iterette>.Failure("ITERATION_WAS_FINISHED");
 
 
-            var currentTime = DateTime.UtcNow;
+            var currentTime     = DateTime.UtcNow;
+            var lastActionTime  = iterette.Iteration.LastActionAt;
 
             iterette.ActionCounter++;
-            iterette.ActionTimeSpan = currentTime - iterette.Iteration.LastActionAt;
+            iterette.UserAnswer             = answer;
+            iterette.ActionTimeSpan         = currentTime - lastActionTime;
             iterette.Iteration.LastActionAt = currentTime;
 
-            iterette.UserAnswer = answer;
             await _context.SaveChangesAsync();
 
             return RequestResult<Iterette>.Success(iterette);
         }
 
-        private async Task<RequestResult<RepetitionState>> UpdateRepetitionStateAsync(int userId, int entryId, double quality)
+        public async Task<RequestResult<RepetitionState>> SelfAssessmentRepetitionStateAsync(int userId, int entryId, double quality)
+        {
+            return await UpdateRepetitionStateAsync(userId, entryId, quality, false);
+        }
+
+        private async Task<RequestResult<RepetitionState>> AutoAssessmentRepetitionStateAsync(int userId, Iterette iterette, VocabularyEntry entry)
+        {
+            double similarity = GetMaxAnswerSimilarity(iterette, entry);
+            double quality = SM2Helper.ComputeQuality(iterette.Iteration.AverageActionTime, iterette.ActionTimeSpan, iterette.ActionCounter, similarity);
+
+            return await UpdateRepetitionStateAsync(userId, entry.Id, quality, true);
+        }
+
+        private async Task<RequestResult<RepetitionState>> UpdateRepetitionStateAsync(int userId, int entryId, double quality, bool isAutoAssessment)
         {
             var state = await GetRepetitionStateByEntryIdAsync(userId, entryId);
 
@@ -181,48 +201,22 @@ namespace Itereta.Services
                 return RequestResult<RepetitionState>.Failure("REPETITION_STATE_NOT_FOUND");
 
 
-            double EF = state.EasinessFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
-            int interval;
+            (int interval, double easinessFactor, DateTime iterationAt) 
+                = SM2Helper.GetNextState(state.EasinessFactor, state.IterationInterval, state.IterationCounter, quality);
 
-            if (state.IterationCounter == 0)
-                interval = 1;
-            else if (state.IterationCounter == 1)
-                interval = 6;
-            else
-                interval = (int)Math.Round(state.IterationInterval * EF);
+            if (isAutoAssessment)
+                state.IterationCounter++;
 
-
-            state.IterationCounter = state.IterationCounter + 1;
-            state.EasinessFactor = EF;
             state.IterationInterval = interval;
-            state.NextIterationAt = DateTime.UtcNow.AddDays(interval);
+            state.EasinessFactor = easinessFactor;
+            state.NextIterationAt = iterationAt;
 
             await _context.SaveChangesAsync();
 
             return RequestResult<RepetitionState>.Success(state);
         }
 
-
-        public double GetRepetitionQuality(Iterette iterette, VocabularyEntry entry)
-        {
-            double Stability = Math.Exp(-1.0f * (iterette.ActionCounter - 1));
-
-            double Accuracy = GetAnswerAccuracy(iterette, entry);
-            if (Accuracy < 0.8d) Accuracy = 0;
-
-            var averageTime = (iterette.Iteration.FinishedAt - iterette.Iteration.StartedAt) / iterette.Iteration.Iterettes.Count;
-
-            double Reaction = averageTime.Value.TotalSeconds / iterette.ActionTimeSpan.TotalSeconds;
-            Reaction = Math.Clamp(Reaction, 0.8, 1.1);
-
-            double Knowledge = 0.8 * Accuracy + 0.1 * Stability + 0.1 * Reaction;
-
-            double Quality = Knowledge * 5;
-
-            return Quality;
-        }
-
-        private double GetAnswerAccuracy(Iterette iterette, VocabularyEntry entry)
+        private double GetMaxAnswerSimilarity(Iterette iterette, VocabularyEntry entry)
         {
             string userAnswer = iterette.UserAnswer;
 

@@ -23,66 +23,30 @@ namespace Itereta.Controllers
         private readonly VocabularyIterationService _iterationService;
 
 
-        [HttpGet]
+        [HttpGet("status")]
         public async Task<IActionResult> GetIterationStatus()
         {
             var result = await _iterationService.GetIterationStatusAsync(UserId);
 
-            return StatusCode(0, result.ErrorCode);
+            return StatusCode(500, result.ErrorCode);
         }
 
-        [HttpGet("iterettes")]
-        public async Task<IActionResult> GetAllIterettes()
-        {
-            var iteration = await _iterationService.GetIterationAsync(UserId);
-
-            var iterettesDto = Mapper.MapToDto(iteration != null ? iteration.Iterettes : new List<Iterette>());
-            return Ok(iterettesDto);
-        }
-
-
-        [HttpPost]
+        [HttpPost("start")]
         public async Task<IActionResult> StartIteration()
         {
-            try
-            {
-                var result = await _iterationService.StartIterationAsync(UserId);
-
-                if (!result.IsSuccess)
-                {
-                    return result.ErrorCode switch
-                    {
-                        "USER_NOT_FOUND" => NotFound(result.ErrorCode),
-                        "ITERATION_NOT_FINISHED" => Conflict(result.ErrorCode),
-                        _ => StatusCode(500, result.ErrorCode)
-                    };
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("\n\n========\n\n" + ex.InnerException + "\n\n========\n\n" + ex.Message);
-            }
-
-            return Ok();
-        }
-
-        [HttpPut("answer/{id:int}")]
-        public async Task<IActionResult> SetIteretteAnswer(int id, string answer)
-        {
-            var result = await _iterationService.SetIteretteAnswerAsync(UserId, id, answer);
+            var result = await _iterationService.StartIterationAsync(UserId);
 
             if (!result.IsSuccess)
             {
                 return result.ErrorCode switch
                 {
-                    "ITERETTE_NOT_FOUND" => NotFound(result.ErrorCode),
-                    "ITERATION_WAS_FINISHED" => BadRequest(result.ErrorCode),
+                    "USER_NOT_FOUND" => NotFound(result.ErrorCode),
+                    "ITERATION_NOT_FINISHED" => Conflict(result.ErrorCode),
                     _ => StatusCode(500, result.ErrorCode)
                 };
             }
 
-            var iteretteDto = Mapper.MapToDto(result.Value);
-            return Ok(iteretteDto);
+            return Ok();
         }
 
         [HttpPost("finish")]
@@ -101,6 +65,67 @@ namespace Itereta.Controllers
             }
 
             return Ok(result.Value);
+        }
+
+
+        [HttpGet("iterettes")]
+        public async Task<IActionResult> GetAllIterettes()
+        {
+            var iterettes = await _iterationService.GetAllIterettesAsync(UserId);
+
+            var iterettesDto = Mapper.MapToDto(iterettes);
+            return Ok(iterettesDto);
+        }
+
+        [HttpGet("iterettes/{id:int}")]
+        public async Task<IActionResult> GetIteretteById(int id)
+        {
+            var iterette = await _iterationService.GetIteretteByIdAsync(UserId, id);
+
+            if (iterette == null)
+                return NotFound();
+
+            var iterettesDto = Mapper.MapToDto(iterette);
+            return Ok(iterettesDto);
+        }
+
+        [HttpPut("iterettes/answer/{id:int}")]
+        public async Task<IActionResult> SubmitIteretteAnswer(int id, string answer)
+        {
+            var result = await _iterationService.SubmitIteretteAnswerAsync(UserId, id, answer);
+
+            if (!result.IsSuccess)
+            {
+                return result.ErrorCode switch
+                {
+                    "ITERETTE_NOT_FOUND" => NotFound(result.ErrorCode),
+                    "ITERATION_WAS_FINISHED" => BadRequest(result.ErrorCode),
+                    _ => StatusCode(500, result.ErrorCode)
+                };
+            }
+
+            var iteretteDto = Mapper.MapToDto(result.Value);
+            return Ok(iteretteDto);
+        }
+
+
+        [HttpPut("repetitions/{id:int}")]
+        public async Task<IActionResult> SelfAssessmentRepetitionState(int id, double quality)
+        {
+            var result = await _iterationService.SelfAssessmentRepetitionStateAsync(UserId, id, quality);
+
+            if (!result.IsSuccess)
+            {
+                return result.ErrorCode switch
+                {
+                    "REPETITION_STATE_NOT_FOUND" => NotFound(result.ErrorCode),
+                    "REPETITION_STATE_IS_FRESH" => BadRequest(result.ErrorCode),
+                    _ => StatusCode(500, result.ErrorCode)
+                };
+            }
+
+            var stateDto = Mapper.MapToDto(result.Value);
+            return Ok(stateDto);
         }
     }
 }

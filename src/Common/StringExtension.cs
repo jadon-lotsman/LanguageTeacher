@@ -42,9 +42,9 @@ namespace Itereta.Common
 
         public static double ComputeLevenshteinSimilarity(this string a, string b)
         {
-            const double delete_cost = 1.0d;
+            const double delete_cost = 1.1d;
             const double insertion_cost = 1.1d;
-            const double replacement_cost = 1.05d;
+            const double replacement_cost = 1.0d;
 
             a = a.ToLower().Replace(" ", "");
             b = b.ToLower().Replace(" ", "");

@@ -13,8 +13,21 @@ namespace Itereta.Data.Entities
         public DateTime StartedAt { get; set; }
         public DateTime LastActionAt { get; set; }
         public DateTime? FinishedAt { get; set; }
-        public bool WasFinished => FinishedAt.HasValue;
-
+        public bool IsFinished => FinishedAt.HasValue;
+        public TimeSpan AverageActionTime
+        {
+            get
+            {
+                if (FinishedAt.HasValue)
+                {
+                    return (FinishedAt - StartedAt).Value / Iterettes.Count;
+                }
+                else
+                {
+                    return (DateTime.UtcNow - StartedAt) / Iterettes.Count;
+                }
+            }
+        }
 
         public int UserId { get; set; }
         public User User { get; set; }
