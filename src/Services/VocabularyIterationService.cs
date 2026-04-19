@@ -131,7 +131,7 @@ namespace Itereta.Services
             {
                 if (entriesDict.TryGetValue(iterette.BaseVocabularyEntryId, out var baseEntry) && baseEntry != null)
                 {
-                    var state = await AutoAssessmentRepetitionStateAsync(userId, iterette, baseEntry);
+                    var state = await AutoAssessmentAsync(userId, iterette, baseEntry);
 
                     //if (state.Value.IterationCounter!=0)
                     //    failedEntries.Add(baseEntry);
@@ -180,36 +180,50 @@ namespace Itereta.Services
             return RequestResult<Iterette>.Success(iterette);
         }
 
-        public async Task<RequestResult<RepetitionState>> SelfAssessmentRepetitionStateAsync(int userId, int entryId, double quality)
-        {
-            return await UpdateRepetitionStateAsync(userId, entryId, quality, false);
-        }
-
-        private async Task<RequestResult<RepetitionState>> AutoAssessmentRepetitionStateAsync(int userId, Iterette iterette, VocabularyEntry entry)
-        {
-            double similarity = GetMaxAnswerSimilarity(iterette, entry);
-            double quality = SM2Helper.ComputeQuality(iterette.Iteration.AverageActionTime, iterette.ActionTimeSpan, iterette.ActionCounter, similarity);
-
-            return await UpdateRepetitionStateAsync(userId, entry.Id, quality, true);
-        }
-
-        private async Task<RequestResult<RepetitionState>> UpdateRepetitionStateAsync(int userId, int entryId, double quality, bool isAutoAssessment)
+        public async Task<RequestResult<RepetitionState>> SelfAssessmentAsync(int userId, int entryId, double quality)
         {
             var state = await GetRepetitionStateByEntryIdAsync(userId, entryId);
 
             if (state == null)
                 return RequestResult<RepetitionState>.Failure("REPETITION_STATE_NOT_FOUND");
 
+            if (!state.CanSelfAssess)
+                return RequestResult<RepetitionState>.Failure("REPETITION_STATE_ASSESS_NOT_ALLOWED");
 
-            (int interval, double easinessFactor, DateTime iterationAt) 
+            // Self features
+            state.CanSelfAssess    = false;
+
+            (int interval, double easinessFactor)
                 = SM2Helper.GetNextState(state.EasinessFactor, state.IterationInterval, state.IterationCounter, quality);
 
-            if (isAutoAssessment)
-                state.IterationCounter++;
+            state.IterationInterval = interval;
+            state.EasinessFactor    = easinessFactor;
+
+            await _context.SaveChangesAsync();
+
+            return RequestResult<RepetitionState>.Success(state);
+        }
+
+        private async Task<RequestResult<RepetitionState>> AutoAssessmentAsync(int userId, Iterette iterette, VocabularyEntry entry)
+        {
+            double similarity = GetMaxAnswerSimilarity(iterette, entry);
+            double quality = SM2Helper.ComputeQuality(iterette.Iteration.AverageActionTime, iterette.ActionTimeSpan, iterette.ActionCounter, similarity);
+
+            var state = await GetRepetitionStateByEntryIdAsync(userId, entry.Id);
+
+            if (state == null)
+                return RequestResult<RepetitionState>.Failure("REPETITION_STATE_NOT_FOUND");
+
+            // Auto features
+            state.IterationCounter  = SM2Helper.IsPassingQuality(quality) ? state.IterationCounter + 1 : 0;
+            state.CanSelfAssess     = SM2Helper.IsPassingQuality(quality);
+            state.LastIterationAt   = DateTime.UtcNow;
+
+            (int interval, double easinessFactor) 
+                = SM2Helper.GetNextState(state.EasinessFactor, state.IterationInterval, state.IterationCounter, quality);
 
             state.IterationInterval = interval;
-            state.EasinessFactor = easinessFactor;
-            state.NextIterationAt = iterationAt;
+            state.EasinessFactor    = easinessFactor;
 
             await _context.SaveChangesAsync();
 

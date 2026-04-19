@@ -112,14 +112,14 @@ namespace Itereta.Controllers
         [HttpPut("repetitions/{id:int}")]
         public async Task<IActionResult> SelfAssessmentRepetitionState(int id, double quality)
         {
-            var result = await _iterationService.SelfAssessmentRepetitionStateAsync(UserId, id, quality);
+            var result = await _iterationService.SelfAssessmentAsync(UserId, id, quality);
 
             if (!result.IsSuccess)
             {
                 return result.ErrorCode switch
                 {
                     "REPETITION_STATE_NOT_FOUND" => NotFound(result.ErrorCode),
-                    "REPETITION_STATE_IS_FRESH" => BadRequest(result.ErrorCode),
+                    "REPETITION_STATE_ASSESS_NOT_ALLOWED" => BadRequest(result.ErrorCode),
                     _ => StatusCode(500, result.ErrorCode)
                 };
             }

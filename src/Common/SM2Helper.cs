@@ -11,7 +11,7 @@ namespace Itereta.Common
         private const double MinEasinessFactor = 1.3;
 
         private const int FirstIntervalDays = 1;
-        private const int SecondIntervalDays = 4;
+        private const int SecondIntervalDays = 3;
 
 
         public static double ComputeQuality(TimeSpan averageTime, TimeSpan actionTime, int actionCounter, double similarity)
@@ -31,41 +31,38 @@ namespace Itereta.Common
             return Quality;
         }
 
-        public static (int interval, double easinessFactor, DateTime iterationAt) 
-            GetNextState(double ef, int interval, int repetitionCounter, double quality)
-        {
-            int nextInterval;
-            double newEasinessFactor;
-            DateTime nextIterationAt;
 
-            if (!IsRecallSuccessful(quality))
+        public static (int newInterval, double newEasinessFactor) GetNextState(double easinessFactor, int interval, int repetitionCounter, double quality)
+        {
+            int newInterval;
+            double newEasinessFactor;
+
+            if (!IsPassingQuality(quality))
             {
-                nextInterval = 1;
+                newInterval = FirstIntervalDays;
                 newEasinessFactor = MinEasinessFactor;
             }
             else
             {
-                newEasinessFactor = ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
-                newEasinessFactor = Math.Clamp(newEasinessFactor, MinEasinessFactor, newEasinessFactor);
+                newEasinessFactor = easinessFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+                newEasinessFactor = Math.Max(newEasinessFactor, MinEasinessFactor);
 
-                nextInterval = repetitionCounter switch
+
+                newInterval = repetitionCounter switch
                 {
                     0 => FirstIntervalDays,
                     1 => SecondIntervalDays,
                     _ => (int)Math.Ceiling((interval > 0 ? interval : 1) * newEasinessFactor)
                 };
 
-                nextInterval = Math.Clamp(nextInterval, MinIntervalDays, MaxIntervalDays);
+                newInterval = Math.Clamp(newInterval, MinIntervalDays, MaxIntervalDays);
             }
 
-
-            nextIterationAt = DateTime.UtcNow.AddDays(nextInterval);
-
-            return (nextInterval, newEasinessFactor, nextIterationAt);
+            return (newInterval, newEasinessFactor);
         }
 
 
-        public static bool IsRecallSuccessful(double quality) => quality >= 3;
+        public static bool IsPassingQuality(double quality) => quality >= 3;
 
         private static double CalcFuzzyAccuracy(double similarity, double min=0.75, double max=0.9)
         {

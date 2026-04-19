@@ -7,7 +7,9 @@
         public int IterationCounter { get; set; }
         public int IterationInterval { get; set; }
         public double EasinessFactor { get; set; }
-        public DateTime NextIterationAt { get; set; }
+        public bool CanSelfAssess { get; set; }
+        public DateTime LastIterationAt { get; set; }
+        public DateTime NextIterationAt => LastIterationAt.AddDays(IterationInterval);
 
 
         public int UserId { get; set; }
@@ -20,6 +22,8 @@
 
         public RepetitionState(User user, VocabularyEntry entry)
         {
+            CanSelfAssess = false;
+
             User = user;
             VocabularyEntry = entry;
         }
