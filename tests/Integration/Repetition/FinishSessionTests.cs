@@ -7,35 +7,42 @@ using Microsoft.Extensions.DependencyInjection;
 using Mnemo.Common;
 using Mnemo.Data.Entities;
 using Mnemo.Services;
+using Mnemo.Services.Queries;
 
 namespace tests.Integration.Repetition
 {
     public class FinishSessionTests : IntegrationTestBase
     {
         [Fact]
-        public async Task FinishSession_ShouldStopSession()
+        public async Task FinishSession_ShouldStopAndRemoveSessionWithTasks()
         {
             // Arrange
-            var user = DataSeeder.CreateUser(id: 3, username: "Bob");
-            var entry = DataSeeder.CreateEntry(id: 7, userId: user.Id, foreign: "apple", translations: "яблоко");
-            var state = DataSeeder.CreateState(id: 1, userId: user.Id, entryId: entry.Id, repetitionCounter: 2, repetitionInterval: 4, ef: SM2Helper.InitEF);
+            var user   = DataSeeder.CreateUser(id: 3, username: "Bob");
+            var entry1 = DataSeeder.CreateEntry(id: 6, userId: user.Id, foreign: "apple", translations: "яблоко");
+            var entry2 = DataSeeder.CreateEntry(id: 7, userId: user.Id, foreign: "banana", translations: "банан");
+            var state1 = DataSeeder.CreateState(id: 1, userId: user.Id, entryId: entry1.Id, repetitionCounter: 2, repetitionInterval: 4, ef: SM2Helper.InitEF);
+            var state2 = DataSeeder.CreateState(id: 2, userId: user.Id, entryId: entry2.Id, repetitionCounter: 2, repetitionInterval: 4, ef: SM2Helper.InitEF);
 
-            var existingSession = new RepetitionSession(user.Id, new List<RepetitionTask>() { new RepetitionTask(entry, true) });
+            var existingSession = new RepetitionSession(user.Id, new List<RepetitionTask>() { new RepetitionTask(entry1, true), new RepetitionTask(entry2, false) });
 
             DbContext.RepetitionSessions.Add(existingSession);
             await DbContext.SaveChangesAsync();
 
-            var repetitionService = ServiceProvider.GetRequiredService<RepetitionSessionService>();
+            var sessionQueries = ServiceProvider.GetRequiredService<SessionQueries>();
+            var sessionService = ServiceProvider.GetRequiredService<RepetitionSessionService>();
 
 
             // Act
-            var result = await repetitionService.FinishRepetitionSessionAsync(user.Id);
+            var result = await sessionService.FinishRepetitionSessionAsync(user.Id);
 
 
             // Assert
             Assert.True(result.IsSuccess);
-            Assert.True(existingSession.IsFinished);
-            Assert.True(existingSession.StartedAt < existingSession.FinishedAt);
+            var repetitionResult = result.Value!;
+            Assert.Null(await sessionQueries.GetByUserIdAsync(user.Id));
+            Assert.Empty(await sessionQueries.GetTasksByUserIdAsync(user.Id));
+            Assert.True(repetitionResult.StartedAt < repetitionResult.FinishedAt);
+            Assert.Equal(2, repetitionResult.Total);
         }
     }
 }

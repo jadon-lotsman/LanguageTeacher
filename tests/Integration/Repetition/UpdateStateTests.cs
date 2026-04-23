@@ -10,15 +10,39 @@ using Mnemo.Services;
 
 namespace tests.Integration.Repetition
 {
-    public class SelfAssesmentTests : IntegrationTestBase
+    public class UpdateStateTests : IntegrationTestBase
     {
+        [Fact]
+        public async Task AutoAssessment_ShouldUpdateStateAndIncreaseCounter()
+        {
+            // Arrange
+            var user = DataSeeder.CreateUser(id: 3, username: "Bob");
+            var entry = DataSeeder.CreateEntry(id: 7, userId: user.Id, foreign: "apple", translations: "яблоко");
+            var state = DataSeeder.CreateState(id: 1, userId: user.Id, entryId: entry.Id, repetitionCounter: 2, repetitionInterval: 4, ef: SM2Helper.InitEF);
+
+            var stateService = ServiceProvider.GetRequiredService<RepetitionStateService>();
+
+
+            // Act
+            var result = await stateService.UpdateRepetitionStateAsync(userId: user.Id, entryId: entry.Id, quality: 5, shouldIncrementCounter: true);
+
+
+            // Assert
+            Assert.True(result.IsSuccess);
+            var updatedState = result.Value!;
+
+            Assert.Equal(3, state.IterationCounter);
+            Assert.True(updatedState.CanSelfAssess);
+            Assert.True(updatedState.EasinessFactor > SM2Helper.InitEF);
+            Assert.True(updatedState.IterationInterval > 4);
+        }
+
         [Fact]
         public async Task SelfAssessment_WhenAllowed_ShouldUpdateStateAndDisableFlag()
         {
             // Arrange
             var user  = DataSeeder.CreateUser (id: 3, username: "Bob");
             var entry = DataSeeder.CreateEntry(id: 7, userId: user.Id, foreign: "apple", translations: "яблоко");
-
             var state = DataSeeder.CreateState(id: 1, userId: user.Id, entryId: entry.Id, repetitionCounter: 2, repetitionInterval: 4, ef: SM2Helper.InitEF);
             state.CanSelfAssess = true;
 
@@ -44,7 +68,6 @@ namespace tests.Integration.Repetition
             // Arrange
             var user  = DataSeeder.CreateUser (id: 3, username: "Bob");
             var entry = DataSeeder.CreateEntry(id: 7, userId: user.Id, foreign: "apple", translations: "яблоко");
-
             var state = DataSeeder.CreateState(id: 1, userId: user.Id, entryId: entry.Id, repetitionCounter: 2, repetitionInterval: 4, ef: SM2Helper.InitEF);
             state.CanSelfAssess = false;
 

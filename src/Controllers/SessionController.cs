@@ -67,14 +67,15 @@ namespace Mnemo.Controllers
                 };
             }
 
-            return Ok(result.Value);
+            var resultDto = Mapper.MapToDto(result.Value);
+            return Ok(resultDto);
         }
 
 
         [HttpGet("tasks")]
         public async Task<IActionResult> GetAllTasks()
         {
-            var tasks = await _sessionQueries.GetAllTasksByUserIdAsync(UserId);
+            var tasks = await _sessionQueries.GetTasksByUserIdAsync(UserId);
 
             var tasksDto = Mapper.MapToDto(tasks);
             return Ok(tasksDto);
@@ -83,7 +84,7 @@ namespace Mnemo.Controllers
         [HttpGet("tasks/{id:int}")]
         public async Task<IActionResult> GetTaskById(int id)
         {
-            var task = await _sessionQueries.GetRepetitionTaskByIdAsync(UserId, id);
+            var task = await _sessionQueries.GetTaskByIdAsync(UserId, id);
 
             if (task == null)
                 return NotFound();

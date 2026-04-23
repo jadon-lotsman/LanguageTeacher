@@ -20,21 +20,21 @@ namespace Mnemo.Services.Queries
             => _context.RepetitionSessions.Where(s => s.UserId == userId);
 
 
-        public async Task<RepetitionSession?> GetByUserIdAsync(int userId)
-        {
-            return await _context.RepetitionSessions
-                .Include(s => s.Tasks)
-                .FirstOrDefaultAsync(s => s.User.Id == userId);
-        }
+        public async Task<bool> ExistsByUserId(int userId)
+            => await GetByUserIdQuery(userId).AnyAsync();
 
-        public async Task<List<RepetitionTask>> GetAllTasksByUserIdAsync(int userId)
+
+        public async Task<RepetitionSession?> GetByUserIdAsync(int userId)
+            => await _context.RepetitionSessions.FirstOrDefaultAsync(s => s.User.Id == userId);
+
+        public async Task<List<RepetitionTask>> GetTasksByUserIdAsync(int userId)
         {
             return await _context.RepetitionTasks
                 .Where(t => t.RepetitionSession.UserId == userId)
                 .ToListAsync();
         }
 
-        public async Task<RepetitionTask?> GetRepetitionTaskByIdAsync(int userId, int taskId)
+        public async Task<RepetitionTask?> GetTaskByIdAsync(int userId, int taskId)
         {
             return await _context.RepetitionTasks
                 .Include(t => t.RepetitionSession)

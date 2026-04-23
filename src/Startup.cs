@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Mnemo.Data;
 using Mnemo.Services;
+using Mnemo.Services.Handlers;
 using Mnemo.Services.Queries;
 
 namespace Mnemo
@@ -84,6 +85,9 @@ namespace Mnemo
             services.AddScoped<SessionQueries>();
             services.AddScoped<StateQueries>();
             services.AddScoped<VocabularyQueries>();
+
+            // DI Handlers
+            services.AddScoped<RepetitionResultHandler>();
 
             // DI Services
             services.AddScoped<AccountManagementService>();

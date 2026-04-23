@@ -13,10 +13,10 @@ namespace tests.Integration.Repetition
     public class StartSessionTests : IntegrationTestBase
     {
         [Fact]
-        public async Task StartSession_WhenNoActiveSession_ShouldCreateNewSessionAndStates()
+        public async Task StartSession_WhenNoActiveSession_ShouldCreateNewSession()
         {
             // Arrange
-            var user = DataSeeder.CreateUser(id: 3, username: "Bob");
+            var user   = DataSeeder.CreateUser(id: 3, username: "Bob");
             var entry1 = DataSeeder.CreateEntry(id: 7, userId: user.Id, foreign: "apple", translations: "яблоко");
             var entry2 = DataSeeder.CreateEntry(id: 8, userId: user.Id, foreign: "banana", translations: "банан");
 
@@ -41,7 +41,7 @@ namespace tests.Integration.Repetition
         public async Task StartSession_WhenActiveSessionExists_ShouldReturnFailure()
         {
             // Arrange
-            var user = DataSeeder.CreateUser(id: 3, username: "Bob");
+            var user            = DataSeeder.CreateUser(id: 3, username: "Bob");
             var existingSession = new RepetitionSession(user.Id, new List<RepetitionTask>());
 
             DbContext.RepetitionSessions.Add(existingSession);

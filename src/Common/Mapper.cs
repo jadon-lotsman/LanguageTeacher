@@ -45,6 +45,21 @@ namespace Mnemo.Common
                 .ToArray();
         }
 
+        public static RepetitionResultDto? MapToDto(RepetitionResult? result)
+        {
+            if (result == null) return null;
+
+            return new RepetitionResultDto
+            {
+                Correct = result.Correct,
+                Total   = result.Total,
+                Percent = result.Percent,
+                StartedAt = result.StartedAt,
+                FinishedAt = result.FinishedAt,
+                VocabularyEntries = MapToDto(result.VocabularyEntries).ToList()
+            };
+        }
+
         public static RepetitionTaskResponseDto? MapToDto(RepetitionTask? task)
         {
             if (task == null) return null;

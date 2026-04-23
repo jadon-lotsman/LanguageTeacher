@@ -13,6 +13,7 @@ namespace Mnemo.Data
         public DbSet<User> Users { get; set; }
         public DbSet<VocabularyEntry> Entries { get; set; }
 
+        public DbSet<RepetitionResult> RepetitionResults { get; set; }
         public DbSet<RepetitionSession> RepetitionSessions { get; set; }
         public DbSet<RepetitionState> RepetitionStates { get; set; }
         public DbSet<RepetitionTask> RepetitionTasks { get; set; }
