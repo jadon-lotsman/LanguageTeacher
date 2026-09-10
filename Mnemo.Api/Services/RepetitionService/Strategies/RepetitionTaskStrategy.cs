@@ -42,7 +42,6 @@ namespace Mnemo.Services.RepetitionService.Strategies
 
             var targetEntries = await query
                 .Include(e => e.RepetitionState)
-                .Include(e => e.Vocabulary)
                 .ToListAsync();
 
 

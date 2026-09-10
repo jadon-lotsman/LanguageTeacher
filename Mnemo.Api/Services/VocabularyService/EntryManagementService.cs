@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
+using AutoMapper.Internal;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Mnemo.Contracts.Entry;
 using Mnemo.Contracts.Entry.Requests;
 using Mnemo.Data;
@@ -117,58 +119,69 @@ namespace Mnemo.Services.VocabularyService
             if (!id.HasValue)
             {
                 _logger.LogWarning("Vocabulary (Guid:{Guid}) not found or access denied for user (UserId:{UserId})!", guid, userId);
-                return BatchRequestResult<VocabularyEntry>.CriticalFailure(ErrorCode.VocabularyNotFound);
+                return BatchRequestResult<VocabularyEntry>.BatchFailure(ErrorCode.VocabularyNotFound);
             }
 
+            var linkResults = await SetVocabularyLinksAsync(userId, id.Value, requests);
+
+            if (linkResults.IsAllFailure)
+            {
+                var messages = string.Join("; ", linkResults.FailedResults.Select(e => e.ErrorMessage));
+                var linkErrors = BatchRequestResult<VocabularyEntry>.BatchFailure(ErrorCode.InvalidData, messages);
+                return linkErrors;
+            }
+
+
+            var linksToAdd = linkResults.SucceededResults.Select(r => r.Value!);
+
+            await _context.VocabularyEntryLinks.AddRangeAsync(linksToAdd);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Created {Count} vocabulary entry (UserId:{UserId}, VocabId:{VocabId})!", linkResults.SucceededResults.Count, userId, id.Value);
+
+            return BatchRequestResult<VocabularyEntry>.Project(linkResults, r => r.VocabularyEntry);
+        }
+
+        public async Task<BatchRequestResult<VocabularyEntryLink>> SetVocabularyLinksAsync(int userId, int? vocabId, IReadOnlyCollection<CreateEntryRequest>? requests)
+        {
+            if (requests == null || requests.Count == 0)
+            {
+                _logger.LogDebug("No requests (UserId: {UserId}, VocabId: {VocabId})!", userId, vocabId);
+                return BatchRequestResult<VocabularyEntryLink>.BatchFailure(ErrorCode.InvalidData);
+            }
 
             var validationResults = await _createValidator.ValidateBatchAsync(requests, _logger);
 
             var messages = string.Join("; ", validationResults.FailedResults.Select(e => e.ErrorMessage));
-            var validationErrors = BatchRequestResult<VocabularyEntry>.CriticalFailure(ErrorCode.InvalidData, messages);
+            var validationErrors = BatchRequestResult<VocabularyEntryLink>.BatchFailure(ErrorCode.InvalidData, messages);
 
             if (validationResults.IsAllFailure)
                 return validationErrors;
 
 
             var succeedRequests = validationResults.SucceededResults.Select(r => r.Value!);
-            var entries =
-                _mapper.Map<List<VocabularyEntry>>(succeedRequests)
-                .RemoveKeyDuplicates();
+            var entries = _mapper.Map<List<VocabularyEntry>>(succeedRequests);
 
-            var filterResults = await FilterVocabularyDuplicatesAsync(userId, id.Value, entries.ToList());
+            var linkResults = await SetVocabularyLinksAsync(userId, vocabId, entries);
 
-            if (filterResults.IsAllFailure)
-                return filterResults;
-
-
-            var entriesToAdd = filterResults.SucceededResults.Select(r => r.Value!).ToList();
-
-            foreach (var entry in entriesToAdd)
-            {
-                entry.VocabularyId = id.Value;
-                entry.RepetitionState = new RepetitionState()
-                {
-                    EasinessFactor = _sm2.Value.InitEF,
-                    RepetitionInterval = _sm2.Value.MinInterval
-                };
-            }
-
-            if (entriesToAdd.Any())
-            {
-                await _context.VocabularyEntries.AddRangeAsync(entriesToAdd);
-                await _context.SaveChangesAsync();
-                _logger.LogInformation("Created {Count} vocabulary entry (UserId:{UserId}, VocabId:{VocabId})!", entriesToAdd.Count, userId, id.Value);
-            }
-
-            var results = validationErrors.Results.Concat(filterResults.Results).ToList();
-            return BatchRequestResult<VocabularyEntry>.Return(results);
+            var results = validationErrors.FailedResults.Concat(linkResults.Results).ToList();
+            return BatchRequestResult<VocabularyEntryLink>.Return(results);
         }
 
-        public async Task<BatchRequestResult<VocabularyEntry>> FilterVocabularyDuplicatesAsync(int userId, int vocabId, IReadOnlyCollection<VocabularyEntry> entries)
+        public async Task<BatchRequestResult<VocabularyEntryLink>> SetVocabularyLinksAsync(int userId, int? vocabId, IReadOnlyCollection<VocabularyEntry> entries)
         {
+            entries = entries
+                .RemoveKeyDuplicates()
+                .ToList();
             int total = entries.Count;
 
-            _logger.LogDebug("Starting duplicate filter for {Count} entries (UserId: {UserId}, VocabId: {VocabId})...", total, userId, vocabId);
+            _logger.LogDebug("Starting set link for {Count} entries (UserId: {UserId}, VocabId: {VocabId})...", total, userId, vocabId);
+
+            if (total == 0)
+            {
+                _logger.LogDebug("No entries (UserId: {UserId}, VocabId: {VocabId})!", userId, vocabId);
+                return BatchRequestResult<VocabularyEntryLink>.BatchFailure(ErrorCode.InvalidData);
+            }
+
 
             var foreigns = entries
                 .Select(e => e.Foreign)
@@ -176,43 +189,84 @@ namespace Mnemo.Services.VocabularyService
                 .Distinct()
                 .ToList();
 
-            var existingKeys = await _entryQueries
-                .GetExistingKeysAsync(userId, vocabId, foreigns);
+            var existingEntries = await _entryQueries
+                .GetKeysByForeignsAsync(userId, foreigns);
+            var existingIds = existingEntries.Values.Select(v => v.Id).ToList();;
 
-            var results = new List<RequestResult<VocabularyEntry>>(total);
+            Dictionary<int, VocabularyEntry>? linkedEntries;
+            if (vocabId.HasValue && vocabId != 0 && existingIds.Count > 0)
+            {
+                linkedEntries = await _entryQueries
+                    .GetLinkedByIdsAsync(userId, vocabId.Value, existingIds);
+            }
+            else
+            {
+                linkedEntries = new Dictionary<int, VocabularyEntry>();
+            }
 
+            var results = new List<RequestResult<VocabularyEntryLink>>(total);
             foreach (var entry in entries)
             {
-                if (existingKeys.Contains((entry.Foreign, entry.PartOfSpeech)))
+                RequestResult<VocabularyEntryLink> result;
+                if (existingEntries.TryGetValue((entry.Foreign, entry.PartOfSpeech), out var existingEntry))
                 {
-                    _logger.LogWarning("Duplicate entry detected (UserId: {UserId}, VocabId: {VocabId}): Foreign:{Foreign}, PartOfSpeech:{PartOfSpeech}", userId, vocabId, entry.Foreign, entry.PartOfSpeech);
-                    results.Add(RequestResult<VocabularyEntry>.Failure(ErrorCode.DuplicateEntry, $"Entry '{entry.Foreign}' with part of speech '{entry.PartOfSpeech}' already exists"));
+                    if (!linkedEntries.IsNullOrEmpty() && linkedEntries.TryGetValue(existingEntry.Id, out var duplicateEntry))
+                    {
+                        _logger.LogWarning("Duplicate entry detected (UserId: {UserId}, VocabId: {VocabId}): Foreign:{Foreign}, PartOfSpeech:{PartOfSpeech}", userId, vocabId, entry.Foreign, entry.PartOfSpeech);
+                        result = RequestResult<VocabularyEntryLink>.Failure(ErrorCode.DuplicateEntry, $"Entry '{entry.Foreign}' with part of speech '{entry.PartOfSpeech}' already exists");
+                    }
+                    else
+                    {
+                        var addLink = new VocabularyEntryLink()
+                        {
+                            VocabularyId = vocabId.HasValue ? vocabId.Value : 0,
+                            VocabularyEntry = existingEntry,
+                        };
+
+                        result = RequestResult<VocabularyEntryLink>.Success(addLink);
+                    }
                 }
                 else
                 {
-                    results.Add(RequestResult<VocabularyEntry>.Success(entry));
+                    var newEntry = VocabularyEntry.CreateFromDefinition(entry);
+                    newEntry.OwnerId = userId;
+                    newEntry.RepetitionState = new RepetitionState()
+                    {
+                        EasinessFactor = _sm2.Value.InitEF,
+                        RepetitionInterval = _sm2.Value.MinInterval
+                    };
+
+                    var addLink = new VocabularyEntryLink()
+                    {
+                        VocabularyId = vocabId.HasValue ? vocabId.Value : 0,
+                        VocabularyEntry = newEntry
+                    };
+
+                    result = RequestResult<VocabularyEntryLink>.Success(addLink);
                 }
+
+                results.Add(result);
             }
 
             int succeeded = results.Count(r => r.IsSuccess);
             int failed = total - succeeded;
 
             if (failed == total)
-                _logger.LogWarning("Duplicate filter completed (UserId:{UserId}, VocabId:{VocabId}): all {Total} entries are diplicates!", userId, vocabId, total);
+                _logger.LogWarning("Set link completed (UserId:{UserId}, VocabId:{VocabId}): all {Total} entries are diplicates!", userId, vocabId, total);
             else if (failed > 0)
-                _logger.LogInformation("Duplicate filter completed (UserId:{UserId}, VocabId:{VocabId}): {Succeeded} unique, {Failed} duplicates out of {Total}!", userId, vocabId, succeeded, failed, total);
+                _logger.LogInformation("Set link completed (UserId:{UserId}, VocabId:{VocabId}): {Succeeded} unique, {Failed} duplicates out of {Total}!", userId, vocabId, succeeded, failed, total);
             else
-                _logger.LogDebug("Duplicate filter completed (UserId:{UserId}, VocabId:{VocabId}): all {Total} entries are unique!", userId, vocabId, total);
+                _logger.LogDebug("Set link completed (UserId:{UserId}, VocabId:{VocabId}): all {Total} entries are unique!", userId, vocabId, total);
 
-            return BatchRequestResult<VocabularyEntry>.Return(results);
+
+            return BatchRequestResult<VocabularyEntryLink>.Return(results);
         }
 
         public async Task<RequestResult<VocabularyEntry>> PatchEntryAsync(int userId, Guid guid, int entryId, PatchEntryRequest request)
         {
             _logger.LogInformation("Patching entry (EntryId:{EntryId}) for user (UserId:{UserId})", entryId, userId);
 
-            int? id = await _vocabularyQueries.GetIdByGuidAsync(userId, guid);
-            if (!id.HasValue)
+            if (!await _vocabularyQueries.ExistsByIdAsync(userId, guid))
             {
                 _logger.LogWarning("Vocabulary (Guid:{Guid}) not found or access denied for user (UserId:{UserId})", guid, userId);
                 return RequestResult<VocabularyEntry>.Failure(ErrorCode.VocabularyNotFound);
@@ -227,7 +281,7 @@ namespace Mnemo.Services.VocabularyService
             }
 
 
-            var currentEntry = await _entryQueries.GetByIdAsync(userId, id.Value, entryId);
+            var currentEntry = await _entryQueries.GetByIdAsync(userId, entryId);
             if (currentEntry == null)
             {
                 _logger.LogWarning("Entry (EntryId:{EntryId}) not found for user (UserId:{UserId})", entryId, userId);
@@ -259,7 +313,7 @@ namespace Mnemo.Services.VocabularyService
                 var checkForeign = newForeign ?? currentEntry.Foreign;
                 var checkPartOfSpeech = newPartOfSpeech ?? currentEntry.PartOfSpeech;
 
-                if (await _entryQueries.ExistsByKeysAsync(userId, id.Value, checkForeign, checkPartOfSpeech))
+                if (await _entryQueries.ExistsByKeyAsync(userId, checkForeign, checkPartOfSpeech))
                 {
                     _logger.LogWarning("Duplicate check failed for entry (EntryId:{EntryId})", entryId);
                     return RequestResult<VocabularyEntry>.Failure(ErrorCode.DuplicateEntry, "Entry already exists");
@@ -305,7 +359,7 @@ namespace Mnemo.Services.VocabularyService
                 return RequestResult<bool>.Failure(ErrorCode.VocabularyNotFound);
             }
 
-            var currentEntry = await _entryQueries.GetByIdAsync(userId, id.Value, entryId);
+            var currentEntry = await _entryQueries.GetByIdAsync(userId, entryId);
             if (currentEntry == null)
             {
                 _logger.LogWarning("Entry (EntryId:{EntryId}) not found for user (UserId:{UserId})", entryId, userId);

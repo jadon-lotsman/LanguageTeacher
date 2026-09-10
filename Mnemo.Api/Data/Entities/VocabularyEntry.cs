@@ -12,11 +12,12 @@ namespace Mnemo.Data.Entities
         public DateTime UpdatedAt { get; set; }
 
 
-        public int VocabularyId { get; set; }
-        public Vocabulary Vocabulary { get; set; }
+        public int OwnerId { get; set; }
+        public User Owner { get; set; }
         public int? MergedFromId { get; set; }
         public Vocabulary? MergedFrom { get; set; }
         public RepetitionState? RepetitionState { get; set; }
+        public List<VocabularyEntryLink> VocabularyLinks { get; set; }
 
 
         public VocabularyEntry()

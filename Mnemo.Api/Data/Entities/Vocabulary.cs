@@ -16,7 +16,7 @@ namespace Mnemo.Data.Entities
 
         public int OwnerId { get; set; }
         public User Owner { get; set; }
-        public List<VocabularyEntry> Entries { get; set; }
+        public List<VocabularyEntryLink> EntryLinks { get; set; }
 
 
         public Vocabulary()
@@ -27,7 +27,7 @@ namespace Mnemo.Data.Entities
             UpdatedAt = CreatedAt;
             IsActive = true;
 
-            Entries = new List<VocabularyEntry>();
+            EntryLinks = new List<VocabularyEntryLink>();
         }
     }
 }

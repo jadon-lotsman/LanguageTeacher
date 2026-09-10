@@ -8,6 +8,7 @@ namespace Mnemo.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Vocabulary> Vocabularies { get; set; }
         public DbSet<VocabularyEntry> VocabularyEntries { get; set; }
+        public DbSet<VocabularyEntryLink> VocabularyEntryLinks { get; set; }
         public DbSet<RepetitionTask> RepetitionTasks { get; set; }
         public DbSet<RepetitionState> RepetitionStates { get; set; }
 
@@ -21,9 +22,9 @@ namespace Mnemo.Data
                 .HasIndex(v => v.OwnerId);
 
             modelBuilder.Entity<VocabularyEntry>()
-                .HasIndex(e => new { e.VocabularyId, e.Foreign, e.PartOfSpeech });
+                .HasIndex(e => new { e.OwnerId, e.Foreign, e.PartOfSpeech });
             modelBuilder.Entity<VocabularyEntry>()
-                .HasIndex(e => new { e.VocabularyId, e.MergedFromId });
+                .HasIndex(e => new { e.OwnerId, e.MergedFromId });
 
             modelBuilder.Entity<RepetitionState>()
                 .HasIndex(s => s.VocabularyEntryId)
@@ -43,12 +44,19 @@ namespace Mnemo.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
 
-            modelBuilder.Entity<Vocabulary>()
-                .HasMany(v => v.Entries)
-                .WithOne(e => e.Vocabulary)
-                .HasForeignKey(e => e.VocabularyId)
-                .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<VocabularyEntryLink>()
+                .HasKey(l => new { l.VocabularyId, l.VocabularyEntryId });
+
+            modelBuilder.Entity<VocabularyEntryLink>()
+                .HasOne(v => v.Vocabulary)
+                .WithMany(l => l.EntryLinks)
+                .HasForeignKey(v => v.VocabularyId);
+
+            modelBuilder.Entity<VocabularyEntryLink>()
+                .HasOne(e => e.VocabularyEntry)
+                .WithMany(l => l.VocabularyLinks)
+                .HasForeignKey(e => e.VocabularyEntryId);
 
             modelBuilder.Entity<VocabularyEntry>()
                 .HasOne(e => e.RepetitionState)

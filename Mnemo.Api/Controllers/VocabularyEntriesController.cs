@@ -35,14 +35,9 @@ namespace Mnemo.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> SearchInVocabulary(Guid guid, [FromQuery] string query)
+        public async Task<IActionResult> SearchInVocabulary([FromQuery] string query)
         {
-            var id = await _vocabularyQueries.GetIdByGuidAsync(UserId, guid);
-
-            if (!id.HasValue)
-                return Forbid();
-
-            var entries = await _entryQueries.GetByQueryAsync(UserId, id.Value, query);
+            var entries = await _entryQueries.GetByQueryAsync(UserId, query);
 
             if (entries == null)
                 return NotFound();

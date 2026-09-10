@@ -21,7 +21,7 @@ namespace Mnemo.Services.Mapping
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => TextNormalizer.NormalizeExample(src.Name)))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => TextNormalizer.NormalizeExample(src.Description)))
                 .ForMember(dest => dest.Visibility, opt => opt.MapFrom(src => src.Visibility))
-                .ForMember(dest => dest.Entries, opt => opt.Ignore());
+                .ForMember(dest => dest.EntryLinks, opt => opt.Ignore());
         }
     }
 }
