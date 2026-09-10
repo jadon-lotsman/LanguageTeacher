@@ -26,6 +26,9 @@ namespace Mnemo.Data
             modelBuilder.Entity<VocabularyEntry>()
                 .HasIndex(e => new { e.OwnerId, e.MergedFromId });
 
+            modelBuilder.Entity<VocabularyEntryLink>()
+                .HasIndex(l => l.VocabularyEntryId);
+
             modelBuilder.Entity<RepetitionState>()
                 .HasIndex(s => s.VocabularyEntryId)
                 .IsUnique();

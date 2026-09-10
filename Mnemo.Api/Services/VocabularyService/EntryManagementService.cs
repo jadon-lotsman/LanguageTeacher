@@ -192,18 +192,16 @@ namespace Mnemo.Services.VocabularyService
 
             var existingEntries = await _entryQueries
                 .GetKeysByForeignsAsync(userId, foreigns);
-            var existingIds = existingEntries.Values.Select(v => v.Id).ToList();;
 
-            Dictionary<int, VocabularyEntry>? linkedEntries;
-            if (vocabId.HasValue && vocabId != 0 && existingIds.Count > 0)
+            HashSet<int>? linkedEntries = null;
+            if (vocabId.HasValue && vocabId != 0)
             {
+                var existingIds = existingEntries.Values.Select(v => v.Id).ToList();
+
                 linkedEntries = await _entryQueries
-                    .GetLinkedByIdsAsync(userId, vocabId.Value, existingIds);
+                    .GetAlreadyLinkedIdsAsync(vocabId.Value, existingIds);
             }
-            else
-            {
-                linkedEntries = new Dictionary<int, VocabularyEntry>();
-            }
+
 
             var results = new List<RequestResult<VocabularyEntryLink>>(total);
             foreach (var entry in entries)
@@ -211,7 +209,7 @@ namespace Mnemo.Services.VocabularyService
                 RequestResult<VocabularyEntryLink> result;
                 if (existingEntries.TryGetValue((entry.Foreign, entry.PartOfSpeech), out var existingEntry))
                 {
-                    if (!linkedEntries.IsNullOrEmpty() && linkedEntries.TryGetValue(existingEntry.Id, out var duplicateEntry))
+                    if (linkedEntries != null && linkedEntries.Contains(existingEntry.Id))
                     {
                         _logger.LogWarning("Duplicate entry detected (UserId: {UserId}, VocabId: {VocabId}): Foreign:{Foreign}, PartOfSpeech:{PartOfSpeech}", userId, vocabId, entry.Foreign, entry.PartOfSpeech);
                         result = RequestResult<VocabularyEntryLink>.Failure(ErrorCode.DuplicateEntry, $"Entry '{entry.Foreign}' with part of speech '{entry.PartOfSpeech}' already exists");

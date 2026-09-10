@@ -44,11 +44,19 @@ namespace Mnemo.Data.Queries
             .Where(e => foreigns.Contains(e.Foreign))
             .ToDictionaryAsync(k => (k.Foreign, k.PartOfSpeech), v => v);
 
-        public async Task<Dictionary<int, VocabularyEntry>> GetLinkedByIdsAsync(int ownerId, int vocabId, List<int> entryIds)
-            => await _context.VocabularyEntryLinks
-            .Where(l => l.VocabularyId == vocabId && l.VocabularyEntry.OwnerId == ownerId && entryIds.Contains(l.VocabularyEntryId))
-            .Select(l => l.VocabularyEntry)
-            .ToDictionaryAsync(k => k.Id);
+        public async Task<HashSet<int>> GetAlreadyLinkedIdsAsync(int vocabId, List<int> entryIds)
+        {
+            if (entryIds.Count == 0)
+                return new HashSet<int>();
+
+            var ids = await _context.VocabularyEntryLinks
+                .Where(l => l.VocabularyId == vocabId
+                         && entryIds.Contains(l.VocabularyEntryId))
+                .Select(l => l.VocabularyEntryId)
+                .ToListAsync();
+
+            return ids.ToHashSet();
+        }
 
         public async Task<List<VocabularyEntry>> GetByQueryAsync(int userId, string query, int limit = 20)
         {
