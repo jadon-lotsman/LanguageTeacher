@@ -51,7 +51,8 @@ namespace Mnemo.Data
             modelBuilder.Entity<VocabularyEntryLink>()
                 .HasOne(v => v.Vocabulary)
                 .WithMany(l => l.EntryLinks)
-                .HasForeignKey(v => v.VocabularyId);
+                .HasForeignKey(v => v.VocabularyId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<VocabularyEntryLink>()
                 .HasOne(e => e.VocabularyEntry)
