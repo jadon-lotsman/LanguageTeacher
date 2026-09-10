@@ -4,6 +4,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Mnemo.Contracts;
 using Mnemo.Contracts.Entry;
 using Mnemo.Contracts.Entry.Requests;
 using Mnemo.Data;
@@ -50,58 +51,58 @@ namespace Mnemo.Services.VocabularyService
 
 
 
-        public async Task<VocabularyPageResponse> GetVocabularyPageAsync(int userId, Guid guid, string startWord, string endWord, int page, int pageSize)
+        public async Task<RequestResult<PageValue<EntryResponse>>> PageEntriesAsync(int userId, string startLetter, string endLetter, int page, int pageSize)
         {
-            bool isDescending = string.Compare(endWord, startWord) < 0;
+            var messages = new List<string>();
+            if (page < 1) messages.Add($"Page must be >= 1");
+            if (pageSize < 1 || pageSize > 100) messages.Add($"PageSize must be in [1, 100])");
 
-            string minWord, maxWord;
-            if (isDescending)
-            {
-                minWord = endWord;
-                maxWord = startWord;
-            }
-            else
-            {
-                minWord = startWord;
-                maxWord = endWord;
-            }
+            if (messages.Count > 0)
+                return RequestResult<PageValue<EntryResponse>>.Failure(ErrorCode.InvalidData, string.Join("; ", messages));
+
+
+            bool isDescending = string.Compare(endLetter, startLetter, StringComparison.OrdinalIgnoreCase) < 0;
+
+            var (minLetter, maxLetter) = isDescending
+                    ? (endLetter, startLetter)
+                    : (startLetter, endLetter);
+
+            _logger.LogDebug("Paging entries for user (UserId:{UserId}): letters [{Min}..{Max}], desc={Desc}, page={Page}, size={Size}...", userId, minLetter, maxLetter, isDescending, page, pageSize);
 
 
             var filteredQuery = _entryQueries
-                .GetEntriesByVocabularyGuidQuery(userId, guid)
-                .Where(e => string.Compare(e.Foreign, minWord) >= 0 &&
-                            string.Compare(e.Foreign, maxWord) <= 0);
+                .GetEntriesByOwnerIdQuery(userId)
+                .Where(e => string.Compare(e.Foreign, minLetter) >= 0 &&
+                            string.Compare(e.Foreign, maxLetter) <= 0);
 
-            IOrderedQueryable<VocabularyEntry> orderedQuery;
-            if (isDescending)
-            {
-                orderedQuery = filteredQuery
-                    .OrderByDescending(e => e.Foreign)
-                    .ThenByDescending(e => e.PartOfSpeech);
-            }
-            else
-            {
-                orderedQuery = filteredQuery
-                    .OrderBy(e => e.Foreign)
-                    .ThenBy(e => e.PartOfSpeech);
-            }
+            var orderedQuery = isDescending
+                ? filteredQuery.OrderByDescending(e => e.Foreign).ThenByDescending(e => e.PartOfSpeech)
+                : filteredQuery.OrderBy(e => e.Foreign).ThenBy(e => e.PartOfSpeech);
 
-            var totalSectorEntries = await orderedQuery.CountAsync();
-            int totalPages = (int)Math.Ceiling(totalSectorEntries / (decimal)pageSize);
+            var letterRangeTotal = await orderedQuery.CountAsync();
+            int totalPages = letterRangeTotal == 0 ? 1 : (int)Math.Ceiling(letterRangeTotal / (double)pageSize);
 
             var entries = await orderedQuery
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            var entriesResponse = _mapper.Map<EntryResponse[]>(entries);
+            var entryIds = entries.Select(e => e.Id).ToList();
+            var linkCounts = entryIds.Count == 0
+                ? new Dictionary<int, int>()
+                : await _context.VocabularyEntryLinks
+                    .Where(l => entryIds.Contains(l.VocabularyEntryId))
+                    .GroupBy(l => l.VocabularyEntryId)
+                    .Select(g => new { EntryId = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.EntryId, x => x.Count);
 
-            return new VocabularyPageResponse
-            {
-                Entries = entriesResponse,
-                hasMore = page < totalPages,
-                SectorEntries = totalSectorEntries,
-            };
+            var items = _mapper.Map<List<EntryResponse>>(entries);
+            foreach (var (dto, entity) in items.Zip(entries))
+                dto.LinkCount = linkCounts.GetValueOrDefault(entity.Id, 0);
+
+            var pageValue = new PageValue<EntryResponse>(page, pageSize, totalPages, items);
+
+            return RequestResult<PageValue<EntryResponse>>.Success(pageValue);
         }
 
 
